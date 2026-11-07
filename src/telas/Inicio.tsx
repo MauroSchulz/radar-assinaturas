@@ -6,6 +6,7 @@ import { Botao } from '../componentes/Botao';
 import { GraficoMeses } from '../componentes/GraficoMeses';
 import { Cartao, Secao, SecaoLink } from '../componentes/Cartao';
 import { CartaoAlerta } from '../componentes/CartaoAlerta';
+import { FotoPerfil } from '../componentes/FotoPerfil';
 import { LinhaAssinatura } from '../componentes/LinhaAssinatura';
 import { Lista } from '../componentes/Lista';
 import { Tela } from '../componentes/Tela';
@@ -16,18 +17,19 @@ import { LIMITE_EMPRESTIMO } from '../dominio/emprestimo';
 import { dinheiro } from '../dominio/formato';
 import { resumoDoAno } from '../dominio/gastos';
 import { proximasCobrancas } from '../dominio/resumo';
+import { bancoPorId } from '../dominio/bancos';
 import { useConta, useFatura, useSaldoConta } from '../estado/conta';
+import { primeiroNome, usePerfil } from '../estado/perfil';
 import { ANO_ATUAL, GASTOS_DO_ANO } from '../estado/extrato';
 import { useLoja } from '../estado/loja';
 import { abrirAssinatura, useNavegacao } from '../estado/navegacao';
-import { useRachas } from '../estado/rachas';
 import { QUANTAS_TRANSACOES, useAlertas, useAssinaturas, useResumo, useSaldos } from '../estado/radar';
 import { ALVO_MINIMO, cor, espaco, raio } from '../tema/tokens';
 
 const ALERTAS_NO_INICIO = 3;
 const MOVIMENTOS_NO_INICIO = 3;
 const OCULTO = '••••';
-/** Nome da demonstração, até a pessoa cadastrar o próprio na chave Pix. */
+/** Se a pessoa apagar o nome do perfil, o Início ainda cumprimenta. */
 const NOME_PADRAO = 'Mauro';
 
 type Icone = ComponentProps<typeof Ionicons>['name'];
@@ -49,9 +51,14 @@ function Faixa({ nome, alertas }: { nome: string; alertas: number }) {
   return (
     <View style={estilos.faixa}>
       <View style={estilos.faixaTopo}>
-        <View style={estilos.perfil} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          <Ionicons name="person-outline" size={22} color={cor.sobreDestaque} />
-        </View>
+        <Pressable
+          onPress={() => ir({ nome: 'perfil' })}
+          accessibilityRole="button"
+          accessibilityLabel="Abrir perfil"
+          style={({ pressed }) => [estilos.perfil, pressed && estilos.pressionado]}
+        >
+          <FotoPerfil tamanho={44} sobreFaixa />
+        </Pressable>
         <View style={estilos.saudacao}>
           <Texto variante="corpoForte" cor={cor.sobreDestaque} accessibilityRole="header" numberOfLines={1}>
             {nome ? `Olá, ${nome}` : 'Olá!'}
@@ -210,7 +217,8 @@ export function Inicio() {
   const decisoes = useLoja((s) => s.decisoes);
   const dispensar = useLoja((s) => s.dispensar);
   const ocultar = useLoja((s) => s.ocultarValores);
-  const nomeCompleto = useRachas((s) => s.pix.nome);
+  const nomeCompleto = usePerfil((s) => s.nome);
+  const conexoes = usePerfil((s) => s.conexoes);
   const trocarAba = useNavegacao((s) => s.trocarAba);
   const ir = useNavegacao((s) => s.ir);
   const abrir = abrirAssinatura;
@@ -234,7 +242,7 @@ export function Inicio() {
   ];
 
   return (
-    <Tela faixa={<Faixa nome={nomeCompleto.trim().split(' ')[0] || NOME_PADRAO} alertas={alertas.length} />}>
+    <Tela faixa={<Faixa nome={primeiroNome(nomeCompleto) || NOME_PADRAO} alertas={alertas.length} />}>
       <Pressable
         onPress={() => trocarAba('assinaturas')}
         accessibilityRole="button"
@@ -408,7 +416,7 @@ export function Inicio() {
       )}
 
       <Texto variante="apoio" cor={cor.textoSobreFundo} style={estilos.rodape}>
-        {`O radar leu ${QUANTAS_TRANSACOES} compras do seu cartão e achou ${assinaturas.length} assinaturas. Dados de demonstração.`}
+        {`O radar leu ${QUANTAS_TRANSACOES} compras do seu cartão${conexoes.length ? ` (${conexoes.map((c) => bancoPorId(c.bancoId)?.nome).filter(Boolean).join(', ')})` : ''} e achou ${assinaturas.length} assinaturas. Dados de demonstração.`}
       </Texto>
     </Tela>
   );
@@ -419,14 +427,7 @@ const TAMANHO_ATALHO = 64;
 const estilos = StyleSheet.create({
   faixa: { gap: espaco.l },
   faixaTopo: { flexDirection: 'row', alignItems: 'center', gap: espaco.m },
-  perfil: {
-    width: 44,
-    height: 44,
-    borderRadius: raio.pilula,
-    backgroundColor: cor.vidroSobreFaixa,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  perfil: { width: ALVO_MINIMO, height: ALVO_MINIMO, borderRadius: raio.pilula, alignItems: 'center', justifyContent: 'center' },
   saudacao: { flex: 1 },
   pontoAlerta: {
     position: 'absolute',

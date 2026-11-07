@@ -3,13 +3,17 @@ import { useEffect } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BarraAbas } from './src/componentes/BarraAbas';
+import { useAvisos, useLembretes } from './src/estado/avisos';
 import { useNavegacao, type Aba, type Rota } from './src/estado/navegacao';
+import { agendarLembretes, cancelarLembretes, configurarNotificacoes } from './src/servicos/notificacoes';
 import { cor, ESQUEMA } from './src/tema/tokens';
 import { Alertas } from './src/telas/Alertas';
 import { Assinaturas } from './src/telas/Assinaturas';
 import { CaixinhaDetalhe } from './src/telas/CaixinhaDetalhe';
 import { Cobranca } from './src/telas/Cobranca';
+import { Bancos } from './src/telas/Bancos';
 import { Comprovante } from './src/telas/Comprovante';
+import { ConectarBanco } from './src/telas/ConectarBanco';
 import { Detalhe } from './src/telas/Detalhe';
 import { Emprestimo } from './src/telas/Emprestimo';
 import { Enviar } from './src/telas/Enviar';
@@ -18,7 +22,9 @@ import { Fatura } from './src/telas/Fatura';
 import { Inicio } from './src/telas/Inicio';
 import { Investir } from './src/telas/Investir';
 import { MontarRacha } from './src/telas/MontarRacha';
+import { Notificacoes } from './src/telas/Notificacoes';
 import { NovaCaixinha } from './src/telas/NovaCaixinha';
+import { Perfil } from './src/telas/Perfil';
 import { RachaDetalhe } from './src/telas/RachaDetalhe';
 import { Rachar } from './src/telas/Rachar';
 import { SeuPix } from './src/telas/SeuPix';
@@ -49,6 +55,14 @@ function TelaDaRota({ rota }: { rota: Rota }) {
       return <Enviar modo={rota.modo} />;
     case 'comprovante':
       return <Comprovante id={rota.id} />;
+    case 'perfil':
+      return <Perfil />;
+    case 'bancos':
+      return <Bancos />;
+    case 'conectarBanco':
+      return <ConectarBanco bancoId={rota.bancoId} />;
+    case 'notificacoes':
+      return <Notificacoes />;
   }
 }
 
@@ -84,9 +98,32 @@ function Conteudo() {
   return <Raiz />;
 }
 
+/**
+ * Mantém os avisos do celular em dia: ao abrir o app e sempre que mudam as preferências ou as
+ * decisões, troca o que está agendado pelos avisos de agora (ou cancela tudo, se desligados).
+ */
+function SincronizarAvisos() {
+  const ativados = useAvisos((s) => s.ativados);
+  const registrar = useAvisos((s) => s.registrarAgendados);
+  const lembretes = useLembretes();
+  useEffect(() => {
+    configurarNotificacoes();
+  }, []);
+  useEffect(() => {
+    let vivo = true;
+    const tarefa = ativados ? agendarLembretes(lembretes) : cancelarLembretes().then(() => 0);
+    tarefa.then((n) => vivo && registrar(n)).catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [ativados, lembretes, registrar]);
+  return null;
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
+      <SincronizarAvisos />
       <StatusBar style={ESQUEMA === 'escuro' ? 'light' : 'dark'} />
       <View style={estilos.app}>
         <View style={estilos.conteudo}>

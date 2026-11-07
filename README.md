@@ -84,6 +84,19 @@ mostra o total, quantas compras, quanto foi assinatura e quanto ficou acima ou a
 O mês de hoje conta só até hoje e fica fora da média; os que ainda não chegaram ficam sem coluna.
 Regra em [`src/dominio/gastos.ts`](src/dominio/gastos.ts).
 
+## Perfil, banco conectado e avisos no celular
+
+A foto no topo do Início abre o **perfil**: foto (da galeria, com `expo-image-picker`) e nome.
+Dali saem três ajustes:
+
+- **Bancos conectados** (demonstração): imita o consentimento do Open Finance, com o que é lido,
+  só leitura e por 12 meses, e dá para desconectar. Os bancos são fictícios
+  ([`src/dominio/bancos.ts`](src/dominio/bancos.ts)).
+- **Avisos no celular** (`expo-notifications`, tudo local): às 9h, um dia antes de cada cobrança e
+  dois dias antes do fim de um teste grátis. O app reagenda sempre que abre. "Testar agora" manda um
+  aviso de verdade em 5 segundos. Regras em [`src/dominio/lembretes.ts`](src/dominio/lembretes.ts).
+- **Como você recebe**: a chave Pix e os dados de transferência das cobranças.
+
 ## Pix, transferência e Pix no crédito
 
 No topo do Início ficam o **saldo em conta** (de exemplo) e três botões:

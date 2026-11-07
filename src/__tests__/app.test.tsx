@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Share } from 'react-native';
 import App from '../../App';
 import { simularEmprestimo } from '../dominio/emprestimo';
@@ -8,6 +8,8 @@ import { useLoja } from '../estado/loja';
 import { useNavegacao } from '../estado/navegacao';
 import { useInvestimentos } from '../estado/investimentos';
 import { useConta } from '../estado/conta';
+import { useAvisos } from '../estado/avisos';
+import { usePerfil } from '../estado/perfil';
 import { SALDO_INICIAL_DEMO, simularPixNoCredito } from '../dominio/conta';
 import { useRachas } from '../estado/rachas';
 
@@ -23,6 +25,8 @@ describe('app', () => {
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
+    usePerfil.getState().recomecar();
+    useAvisos.getState().recomecar();
   });
 
   it('abre no Início com o total e os alertas', async () => {
@@ -84,6 +88,8 @@ describe('rachar', () => {
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
+    usePerfil.getState().recomecar();
+    useAvisos.getState().recomecar();
   });
 
   it('a demonstração mostra quem deve e quanto', async () => {
@@ -209,6 +215,8 @@ describe('investir', () => {
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
+    usePerfil.getState().recomecar();
+    useAvisos.getState().recomecar();
   });
 
   it('mostra as caixinhas da demonstração e a simulação muda com o prazo', async () => {
@@ -272,6 +280,8 @@ describe('cartão de crédito e empréstimo', () => {
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
+    usePerfil.getState().recomecar();
+    useAvisos.getState().recomecar();
   });
 
   it('o Início mostra cartão, empréstimo e próximo pagamento, e o olho esconde a fatura', async () => {
@@ -316,6 +326,8 @@ describe('Pix, transferência e Pix no crédito', () => {
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
+    usePerfil.getState().recomecar();
+    useAvisos.getState().recomecar();
   });
 
   it('o gráfico do ano destaca o mês que mais gastou e mostra o mês tocado', async () => {
@@ -403,5 +415,88 @@ describe('Pix, transferência e Pix no crédito', () => {
     // O saldo da conta fica igual; a 1ª parcela aparece na fatura.
     expect(screen.getByLabelText(`Saldo em conta ${dinheiro(SALDO_INICIAL_DEMO)}`)).toBeTruthy();
     expect(screen.getByText(`${dinheiro(sim.parcela)} de Pix no crédito nesta fatura`)).toBeTruthy();
+  });
+});
+
+describe('perfil, bancos e avisos no celular', () => {
+  const notificacoes = jest.requireMock('expo-notifications') as Record<string, jest.Mock>;
+
+  beforeEach(() => {
+    useNavegacao.setState({ aba: 'inicio', pilha: [] });
+    useLoja.getState().recomecar();
+    useRachas.setState(RACHAS_INICIAL, true);
+    useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
+    usePerfil.getState().recomecar();
+    useAvisos.getState().recomecar();
+    Object.values(notificacoes).forEach((f) => typeof f === 'function' && 'mockClear' in f && f.mockClear());
+  });
+
+  it('a foto do Início abre o perfil; dá para trocar o nome e a foto', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Abrir perfil' }));
+    expect(screen.getByText('Mauro Schulz')).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('Nome'), 'Mauro S.');
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar nome' }));
+    expect(screen.getByText('Nome salvo.')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Trocar foto' }));
+    expect(usePerfil.getState().foto).toEqual({ tipo: 'escolhida', uri: 'file:///galeria/foto.jpg' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Remover foto' }));
+    expect(usePerfil.getState().foto).toEqual({ tipo: 'nenhuma' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
+    expect(screen.getByText('Olá, Mauro')).toBeTruthy();
+  });
+
+  it('conecta um banco (demonstração) depois de autorizar, e desconecta', async () => {
+    jest.useFakeTimers();
+    try {
+      await render(<App />);
+      await fireEvent.press(screen.getByRole('button', { name: 'Abrir perfil' }));
+      await fireEvent.press(screen.getByRole('button', { name: /^Bancos conectados/ }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Conectar Banco Aurora' }));
+      expect(screen.getByText('O que vai ser compartilhado')).toBeTruthy();
+      expect(screen.getByText(/só leitura/)).toBeTruthy();
+      await fireEvent.press(screen.getByRole('button', { name: 'Autorizar e conectar' }));
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      expect(screen.getByText('Conectados (1)')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Conectar Banco Aurora' })).toBeNull();
+      await fireEvent.press(screen.getByRole('button', { name: 'Desconectar Banco Aurora' }));
+      expect(screen.queryByText('Conectados (1)')).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('liga os avisos: pede permissão, agenda no celular e manda um de teste', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Abrir perfil' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Avisos no celular/ }));
+    expect(screen.getByText('Os avisos que você receberia')).toBeTruthy();
+    await fireEvent(screen.getByLabelText('Receber avisos'), 'valueChange', true);
+    expect(screen.getByText(/Pronto! Os avisos chegam às 9h/)).toBeTruthy();
+    expect(useAvisos.getState().ativados).toBe(true);
+    expect(notificacoes.cancelAllScheduledNotificationsAsync).toHaveBeenCalled();
+    expect(notificacoes.scheduleNotificationAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ trigger: expect.objectContaining({ type: 'date' }) }),
+    );
+    notificacoes.scheduleNotificationAsync.mockClear();
+    await fireEvent.press(screen.getByRole('button', { name: 'Testar agora' }));
+    expect(notificacoes.scheduleNotificationAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ trigger: { type: 'timeInterval', seconds: 5 } }),
+    );
+    expect(screen.getByText(/chega em 5 segundos/)).toBeTruthy();
+  });
+
+  it('sem permissão, explica o que fazer e não liga', async () => {
+    notificacoes.getPermissionsAsync.mockResolvedValueOnce({ granted: false });
+    notificacoes.requestPermissionsAsync.mockResolvedValueOnce({ granted: false });
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Abrir perfil' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Avisos no celular/ }));
+    await fireEvent(screen.getByLabelText('Receber avisos'), 'valueChange', true);
+    expect(screen.getByText(/O celular não deixou/)).toBeTruthy();
+    expect(useAvisos.getState().ativados).toBe(false);
   });
 });

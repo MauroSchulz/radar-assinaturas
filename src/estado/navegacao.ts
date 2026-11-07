@@ -24,7 +24,11 @@ export type Rota =
   | { nome: 'emprestimo' }
   | { nome: 'cobranca'; pessoaId: string; rachaId?: string }
   | { nome: 'enviar'; modo: TipoEnvio }
-  | { nome: 'comprovante'; id: string };
+  | { nome: 'comprovante'; id: string }
+  | { nome: 'perfil' }
+  | { nome: 'bancos' }
+  | { nome: 'conectarBanco'; bancoId: string }
+  | { nome: 'notificacoes' };
 
 /**
  * Cinco abas e, por cima delas, uma pilha de telas. `ir` empilha, `voltar` desempilha,
