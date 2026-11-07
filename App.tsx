@@ -9,8 +9,10 @@ import { Alertas } from './src/telas/Alertas';
 import { Assinaturas } from './src/telas/Assinaturas';
 import { CaixinhaDetalhe } from './src/telas/CaixinhaDetalhe';
 import { Cobranca } from './src/telas/Cobranca';
+import { Comprovante } from './src/telas/Comprovante';
 import { Detalhe } from './src/telas/Detalhe';
 import { Emprestimo } from './src/telas/Emprestimo';
+import { Enviar } from './src/telas/Enviar';
 import { EscolherCompra } from './src/telas/EscolherCompra';
 import { Fatura } from './src/telas/Fatura';
 import { Inicio } from './src/telas/Inicio';
@@ -43,6 +45,10 @@ function TelaDaRota({ rota }: { rota: Rota }) {
       return <Emprestimo />;
     case 'cobranca':
       return <Cobranca pessoaId={rota.pessoaId} rachaId={rota.rachaId} />;
+    case 'enviar':
+      return <Enviar modo={rota.modo} />;
+    case 'comprovante':
+      return <Comprovante id={rota.id} />;
   }
 }
 

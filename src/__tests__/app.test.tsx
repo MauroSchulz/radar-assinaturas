@@ -7,6 +7,8 @@ import { deBase64url } from '../dominio/linkPix';
 import { useLoja } from '../estado/loja';
 import { useNavegacao } from '../estado/navegacao';
 import { useInvestimentos } from '../estado/investimentos';
+import { useConta } from '../estado/conta';
+import { SALDO_INICIAL_DEMO, simularPixNoCredito } from '../dominio/conta';
 import { useRachas } from '../estado/rachas';
 
 const RACHAS_INICIAL = useRachas.getState();
@@ -20,6 +22,7 @@ describe('app', () => {
     useLoja.getState().recomecar();
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
   });
 
   it('abre no Início com o total e os alertas', async () => {
@@ -80,13 +83,16 @@ describe('rachar', () => {
     useLoja.getState().recomecar();
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
   });
 
   it('a demonstração mostra quem deve e quanto', async () => {
     await render(<App />);
     await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
-    // Bruno: 120,00 do churrasco + 22,45 da Netflix. Carla: 120,00. A Ana já pagou.
-    expect(screen.getByText('R$ 262,45')).toBeTruthy();
+    // Bruno: 120,00 do churrasco + 22,45 da Netflix. Carla: 120,00. Júlia: 72,00 da pizza.
+    // A Ana já pagou o churrasco e a pizza.
+    expect(screen.getByText('R$ 334,45')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Cobrar Júlia, R\$.72,00/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /^Cobrar Bruno, R\$.142,45/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /^Cobrar Carla, R\$.120,00/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Cobrar Ana/ })).toBeNull();
@@ -96,7 +102,7 @@ describe('rachar', () => {
     await render(<App />);
     expect(screen.getByText(/Com as divisões, sai do seu bolso/)).toBeTruthy();
     expect(screen.getByText('R$ 242,85')).toBeTruthy(); // 265,30 − 22,45 do Bruno
-    expect(screen.getByRole('button', { name: /^Te devem R\$.262,45/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Te devem R\$.334,45/ })).toBeTruthy();
     await fireEvent.press(screen.getByRole('tab', { name: 'Assinaturas' }));
     await fireEvent.press(screen.getByText('Netflix'));
     expect(screen.getByText(/Dividida com Bruno/)).toBeTruthy();
@@ -202,6 +208,7 @@ describe('investir', () => {
     useLoja.getState().recomecar();
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
   });
 
   it('mostra as caixinhas da demonstração e a simulação muda com o prazo', async () => {
@@ -264,6 +271,7 @@ describe('cartão de crédito e empréstimo', () => {
     useLoja.getState().recomecar();
     useRachas.setState(RACHAS_INICIAL, true);
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
   });
 
   it('o Início mostra cartão, empréstimo e próximo pagamento, e o olho esconde a fatura', async () => {
@@ -298,5 +306,102 @@ describe('cartão de crédito e empréstimo', () => {
     expect(screen.getByText(/isso paga \d+% dessa parcela/)).toBeTruthy();
     await fireEvent.changeText(screen.getByLabelText('Quanto você precisa?'), '20.000');
     expect(screen.getByText(/O máximo disponível é/)).toBeTruthy();
+  });
+});
+
+describe('Pix, transferência e Pix no crédito', () => {
+  beforeEach(() => {
+    useNavegacao.setState({ aba: 'inicio', pilha: [] });
+    useLoja.getState().recomecar();
+    useRachas.setState(RACHAS_INICIAL, true);
+    useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
+  });
+
+  it('o gráfico do ano destaca o mês que mais gastou e mostra o mês tocado', async () => {
+    await render(<App />);
+    expect(screen.getByText(/^Gastos no cartão em \d{4}$/)).toBeTruthy();
+    expect(screen.getByText(/^Você gastou mais em/)).toBeTruthy();
+    // Os meses que ainda não chegaram não dão para tocar.
+    const meses = screen.getAllByRole('button', { name: /^(Janeiro|Fevereiro|Março|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro):/ });
+    expect(meses).toHaveLength(12);
+    const maior = screen.getByRole('button', { name: /o mês que mais gastou$/ });
+    expect(maior).toBeSelected();
+    const outro = meses.find((m) => m !== maior && !m.props.accessibilityState?.disabled)!;
+    await fireEvent.press(outro);
+    expect(outro).toBeSelected();
+    expect(maior).not.toBeSelected();
+  });
+
+  it('o Início mostra o saldo e os três jeitos de mandar dinheiro', async () => {
+    await render(<App />);
+    expect(screen.getByLabelText(`Saldo em conta ${dinheiro(SALDO_INICIAL_DEMO)}`)).toBeTruthy();
+    for (const nome of ['Pix', 'Transferir', 'Pix no crédito']) expect(screen.getByRole('button', { name: nome })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Esconder valores' }));
+    expect(screen.getByLabelText('Saldo em conta. Valor escondido.')).toBeTruthy();
+  });
+
+  it('Pix: confere, envia, mostra o comprovante e desconta do saldo', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Pix' }));
+    // Sem preencher nada, não passa.
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByText('Escreva a chave Pix de quem vai receber.')).toBeTruthy();
+    expect(screen.getByText(/Escreva o valor/)).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('Chave Pix'), '(11) 98765-4321');
+    await fireEvent.changeText(screen.getByLabelText('Nome de quem recebe'), 'Bruno');
+    // Mais que o saldo: recusa.
+    await fireEvent.changeText(screen.getByLabelText('Valor'), '9.999.999');
+    expect(screen.getByText(/Seu saldo em conta é/)).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('Valor'), '50');
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByText('Confira antes de enviar')).toBeTruthy();
+    expect(screen.getByLabelText('Sai de: Saldo da conta')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^Confirmar e enviar R\$.50,00/ }));
+
+    expect(screen.getByText('Pix enviado')).toBeTruthy();
+    expect(screen.getByText('para Bruno')).toBeTruthy();
+    expect(screen.getByLabelText(/^Código: E\d{8}/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar ao início' }));
+    expect(screen.getByLabelText(`Saldo em conta ${dinheiro(SALDO_INICIAL_DEMO - 5000)}`)).toBeTruthy();
+    expect(screen.getByText('Últimas movimentações')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Pix para Bruno, hoje, R\$.50,00/ })).toBeTruthy();
+  });
+
+  it('transferência pede banco, agência e conta válidos', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Transferir' }));
+    await fireEvent.changeText(screen.getByLabelText('Nome de quem recebe'), 'Carla Souza');
+    await fireEvent.changeText(screen.getByLabelText('Banco'), 'Banco Exemplo');
+    await fireEvent.changeText(screen.getByLabelText('Agência'), '123456');
+    await fireEvent.changeText(screen.getByLabelText('Conta'), 'abc');
+    await fireEvent.changeText(screen.getByLabelText('Valor'), '120,00');
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByText(/A agência tem até 5 números/)).toBeTruthy();
+    expect(screen.getByText(/Escreva a conta com o dígito/)).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('Agência'), '0001');
+    await fireEvent.changeText(screen.getByLabelText('Conta'), '12345-6');
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Confirmar e enviar/ }));
+    expect(screen.getByText('Transferência enviada')).toBeTruthy();
+    expect(screen.getByLabelText('Conta: Banco Exemplo · ag. 0001 · conta 12345-6')).toBeTruthy();
+  });
+
+  it('Pix no crédito: parcela com juros, não mexe no saldo e entra na fatura', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Pix no crédito' }));
+    await fireEvent.changeText(screen.getByLabelText('Chave Pix'), 'carla@exemplo.com');
+    await fireEvent.changeText(screen.getByLabelText('Valor'), '600');
+    await fireEvent.press(screen.getByRole('radio', { name: '3x' }));
+    const sim = simularPixNoCredito(60000, 3);
+    expect(screen.getByText(`3x de ${dinheiro(sim.parcela)}`)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByLabelText(`Total na fatura: ${dinheiro(sim.total)}`)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^Confirmar e enviar/ }));
+    expect(screen.getByText('Pix no crédito enviado')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar ao início' }));
+    // O saldo da conta fica igual; a 1ª parcela aparece na fatura.
+    expect(screen.getByLabelText(`Saldo em conta ${dinheiro(SALDO_INICIAL_DEMO)}`)).toBeTruthy();
+    expect(screen.getByText(`${dinheiro(sim.parcela)} de Pix no crédito nesta fatura`)).toBeTruthy();
   });
 });

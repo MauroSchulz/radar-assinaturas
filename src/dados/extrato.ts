@@ -21,6 +21,7 @@ function sorteador(semente: number): () => number {
 
 /** Id fixo da compra que a demonstração de racha usa. */
 export const ID_CHURRASCO = 'churrasco';
+export const ID_PIZZARIA = 'pizzaria';
 
 export function gerarExtrato(dataHoje: DataISO = hoje()): Transacao[] {
   const sortear = sorteador(20261106);
@@ -64,6 +65,21 @@ export function gerarExtrato(dataHoje: DataISO = hoje()): Transacao[] {
   lancar(somarDias(dataHoje, -9), 'DROGASIL 0187', 8320);
   lancar(somarDias(dataHoje, -22), 'LIVRARIA CULTURA', 6990);
   lancar(somarDias(dataHoje, -1), 'CHURRASCARIA BRASA VIVA', 48000, ID_CHURRASCO); // rachado com os amigos
+  lancar(somarDias(dataHoje, -4), 'PIZZARIA FORNO DI NAPOLI', 21600, ID_PIZZARIA); // rachado com a Júlia e a Ana
+
+  // O resto do ano, para o gráfico de gastos por mês: as mesmas compras do dia a dia de 121 a 365
+  // dias atrás. Usa um sorteio próprio, para não mudar nada do que foi sorteado acima.
+  const sortearAntes = sorteador(20251107);
+  const antes = (min: number, max: number) => Math.round(min + sortearAntes() * (max - min));
+  const codigoAntes = () => String(antes(1000, 9999));
+  for (let i = 0; i < 60; i++) lancar(somarDias(dataHoje, -antes(121, 365)), `UBER *TRIP ${codigoAntes()}`, antes(1200, 6500));
+  for (let i = 0; i < 36; i++) lancar(somarDias(dataHoje, -antes(121, 365)), `IFOOD *${codigoAntes()}`, antes(2500, 9000));
+  for (let dia = 365; dia > 121; dia -= antes(6, 8)) lancar(somarDias(dataHoje, -dia), 'SUPERMERCADO BOM PRECO', antes(9000, 42000));
+  for (let dia = 362; dia > 121; dia -= antes(10, 14)) lancar(somarDias(dataHoje, -dia), `POSTO IPIRANGA ${codigoAntes()}`, antes(15000, 25000));
+  // Gastos grandes que fazem um mês se destacar: as férias e uma TV nova.
+  lancar(somarDias(dataHoje, -122), 'LATAM AIRLINES BRASIL', 168900);
+  lancar(somarDias(dataHoje, -119), 'POUSADA MAR AZUL', 96000);
+  lancar(somarDias(dataHoje, -297), 'MAGAZINE LUIZA', 129900);
 
   return transacoes.sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
 }

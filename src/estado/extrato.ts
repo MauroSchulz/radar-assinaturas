@@ -7,6 +7,7 @@
 import { gerarExtrato } from '../dados/extrato';
 import { faturaAtual } from '../dominio/cartao';
 import { diasEntre, hoje } from '../dominio/datas';
+import { gastosPorMes } from '../dominio/gastos';
 import { chaveDoComerciante, detectarAssinaturas, nomeLegivel } from '../dominio/deteccao';
 import type { Transacao } from '../dominio/tipos';
 
@@ -27,3 +28,7 @@ export const COMPRAS_RECENTES: Compra[] = EXTRATO.filter((t) => {
 
 /** A fatura do cartão aberta hoje, com quanto dela é assinatura. */
 export const FATURA = faturaAtual(EXTRATO, ASSINATURAS);
+
+/** O ano de hoje e quanto foi gasto no cartão em cada mês dele (gráfico do Início). */
+export const ANO_ATUAL = Number(hoje().slice(0, 4));
+export const GASTOS_DO_ANO = gastosPorMes(EXTRATO, ASSINATURAS, ANO_ATUAL);

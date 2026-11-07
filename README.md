@@ -76,6 +76,26 @@ O banco já tem investimento; o que falta é ligar o investimento ao gasto que v
   se você as cortasse.
 - **Próximo pagamento**: o vencimento da fatura, com o dia da semana.
 
+## Gastos do ano
+
+No Início, um gráfico de colunas com quanto saiu do cartão em cada mês do ano. O mês que mais
+gastou vem escrito em cima ("Você gastou mais em julho") e com o valor na coluna. Tocar num mês
+mostra o total, quantas compras, quanto foi assinatura e quanto ficou acima ou abaixo da média.
+O mês de hoje conta só até hoje e fica fora da média; os que ainda não chegaram ficam sem coluna.
+Regra em [`src/dominio/gastos.ts`](src/dominio/gastos.ts).
+
+## Pix, transferência e Pix no crédito
+
+No topo do Início ficam o **saldo em conta** (de exemplo) e três botões:
+
+- **Pix** e **Transferir** saem do saldo (débito): chave Pix ou banco, agência e conta, valor,
+  tela de conferência e comprovante com código.
+- **Pix no crédito** usa o limite do cartão: à vista ou em 2, 3, 6 ou 12 vezes, com juros de exemplo de
+  3,49% ao mês (Tabela Price). A 1ª parcela entra na fatura aberta e o total com juros sai do limite
+  disponível. Não mexe no saldo da conta.
+
+As regras estão em [`src/dominio/conta.ts`](src/dominio/conta.ts). É demonstração: nenhum dinheiro se move.
+
 ## Como o detector funciona
 
 Fica em [`src/dominio/deteccao.ts`](src/dominio/deteccao.ts) e não depende de tela nenhuma.

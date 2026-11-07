@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cor, espaco } from '../tema/tokens';
 import { espacoParaBarra } from './BarraAbas';
+import { FundoDegrade } from './FundoDegrade';
 import { Texto } from './Texto';
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
   sobretitulo?: string;
   /** Fica acima do título (ex.: botão voltar). */
   topo?: ReactNode;
-  /** Faixa roxa de ponta a ponta no topo (tela inicial). O relógio do celular fica branco sobre ela. */
+  /** Faixa em degradê de ponta a ponta no topo (tela inicial). O relógio do celular fica branco sobre ela. */
   faixa?: ReactNode;
   children: ReactNode;
 }
@@ -23,6 +24,8 @@ export function Tela({ titulo, sobretitulo, topo, faixa, children }: Props) {
   return (
     <View style={[estilos.tela, { paddingTop: top }, faixa ? estilos.telaComFaixa : null]}>
       {faixa && <StatusBar style="light" />}
+      {/* Atrás do relógio e da bateria: o mesmo degradê da faixa, emendado nela. */}
+      {faixa && <FundoDegrade />}
       <ScrollView
         style={estilos.rolagem}
         // A barra de abas flutua por cima: sobra espaço embaixo para ela nunca cobrir o último item.
@@ -30,11 +33,14 @@ export function Tela({ titulo, sobretitulo, topo, faixa, children }: Props) {
       >
         {faixa && (
           <View style={estilos.faixa}>
-            {/* Puxar a tela para baixo no iPhone mostra verde, não branco, acima da faixa. */}
-            <View style={estilos.faixaAcima} />
+            <FundoDegrade />
+            {/* Puxar a tela para baixo no iPhone mostra o degradê, não branco, acima da faixa. */}
+            <FundoDegrade style={estilos.faixaAcima} />
             {faixa}
           </View>
         )}
+        {/* O conteúdo "sobe" por cima do fim da faixa, com os cantos de cima arredondados. */}
+        {faixa && <View style={estilos.bordaDaFaixa} />}
         {topo}
         {(titulo || sobretitulo) && (
           <View style={estilos.cabecalho}>
@@ -56,6 +62,8 @@ export function Tela({ titulo, sobretitulo, topo, faixa, children }: Props) {
   );
 }
 
+const RAIO_DA_BORDA = 24;
+
 const estilos = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cor.fundo },
   telaComFaixa: { backgroundColor: cor.faixa },
@@ -63,13 +71,20 @@ const estilos = StyleSheet.create({
   conteudo: { paddingHorizontal: espaco.l, paddingTop: espaco.m, paddingBottom: espaco.xxl },
   semRespiroNoTopo: { paddingTop: 0 },
   faixa: {
-    backgroundColor: cor.faixa,
     marginHorizontal: -espaco.l,
     paddingHorizontal: espaco.l,
     paddingTop: espaco.m,
-    paddingBottom: espaco.xl,
-    marginBottom: espaco.xl,
+    paddingBottom: espaco.xl + RAIO_DA_BORDA,
   },
-  faixaAcima: { position: 'absolute', left: 0, right: 0, top: -1000, height: 1000, backgroundColor: cor.faixa },
+  bordaDaFaixa: {
+    height: RAIO_DA_BORDA,
+    marginTop: -RAIO_DA_BORDA,
+    marginHorizontal: -espaco.l,
+    marginBottom: espaco.l,
+    backgroundColor: cor.fundo,
+    borderTopLeftRadius: RAIO_DA_BORDA,
+    borderTopRightRadius: RAIO_DA_BORDA,
+  },
+  faixaAcima: { top: -1000, bottom: undefined, height: 1000 },
   cabecalho: { gap: 2, marginBottom: espaco.l },
 });

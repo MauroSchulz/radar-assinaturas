@@ -1,17 +1,24 @@
-import { StyleSheet, View } from 'react-native';
-import { Avatar } from '../componentes/Avatar';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Avatar, categoriaDaPessoa } from '../componentes/Avatar';
 import { Botao } from '../componentes/Botao';
 import { Cartao, Secao } from '../componentes/Cartao';
-import { Lista } from '../componentes/Lista';
 import { LinhaRacha } from '../componentes/LinhaRacha';
+import { Lista } from '../componentes/Lista';
 import { Tela } from '../componentes/Tela';
 import { Texto } from '../componentes/Texto';
+import { dataCurta } from '../dominio/datas';
 import { dinheiro } from '../dominio/formato';
+import type { Saldo } from '../dominio/racha';
 import { temPix } from '../estado/cobrar';
 import { useNavegacao } from '../estado/navegacao';
 import { useRachas } from '../estado/rachas';
 import { useCotas, useSaldos } from '../estado/radar';
 import { ALVO_MINIMO, cor, espaco, raio } from '../tema/tokens';
+
+/** Quantos rostos aparecem empilhados no cartão do total; o resto vira "+N". */
+const ROSTOS_NO_TOTAL = 4;
+const LADO_DO_ROSTO = 30;
 
 export function Rachar() {
   const saldos = useSaldos();
@@ -19,14 +26,24 @@ export function Rachar() {
   const rachas = useRachas((s) => s.rachas);
   const chavePix = useRachas((s) => s.pix.chave);
   const ir = useNavegacao((s) => s.ir);
+
   const totalDevido = saldos.reduce((s, x) => s + x.devendo, 0);
+  // Quanto dos rachas já voltou para você: o que foi pago sobre tudo o que os amigos devem.
+  const totalDasCotas = cotas.reduce((s, c) => s + c.valor, 0);
+  const recebido = cotas.filter((c) => c.pagoEm).reduce((s, c) => s + c.valor, 0);
+  const fracaoRecebida = totalDasCotas > 0 ? recebido / totalDasCotas : 0;
+  const rachasAbertos = rachas.filter((r) => cotas.some((c) => c.rachaId === r.id && !c.pagoEm)).length;
 
   return (
     <Tela titulo="Rachar" sobretitulo="Contas divididas com os amigos">
       <View
         style={estilos.total}
         accessible
-        accessibilityLabel={totalDevido > 0 ? `Te devem ${dinheiro(totalDevido)}` : 'Ninguém te deve nada agora'}
+        accessibilityLabel={
+          totalDevido > 0
+            ? `Te devem ${dinheiro(totalDevido)}, ${saldos.length} ${saldos.length === 1 ? 'pessoa' : 'pessoas'}. Já recebeu ${dinheiro(recebido)} de ${dinheiro(totalDasCotas)}.`
+            : 'Ninguém te deve nada agora'
+        }
       >
         <Texto variante="corpo" cor={cor.sobreDestaqueSuave}>
           Te devem
@@ -34,22 +51,60 @@ export function Rachar() {
         <Texto variante="valorGrande" cor={cor.sobreDestaque}>
           {dinheiro(totalDevido)}
         </Texto>
-        <Texto variante="apoio" cor={cor.sobreDestaqueSuave}>
-          {totalDevido > 0
-            ? `${saldos.length} ${saldos.length === 1 ? 'pessoa' : 'pessoas'} · ${rachas.length} ${rachas.length === 1 ? 'racha' : 'rachas'}`
-            : 'Ninguém te deve nada agora.'}
-        </Texto>
+
+        {totalDevido > 0 ? (
+          <View style={estilos.quem}>
+            <View style={estilos.rostos}>
+              {saldos.slice(0, ROSTOS_NO_TOTAL).map(({ pessoa }, i) => (
+                <View key={pessoa.id} style={[estilos.rosto, i > 0 && estilos.rostoSobreposto]}>
+                  <Avatar nome={pessoa.nome} categoria={categoriaDaPessoa(pessoa.nome)} tamanho={LADO_DO_ROSTO} redondo />
+                </View>
+              ))}
+              {saldos.length > ROSTOS_NO_TOTAL && (
+                <View style={[estilos.rosto, estilos.rostoSobreposto, estilos.mais]}>
+                  <Texto variante="legenda" cor={cor.sobreDestaque}>{`+${saldos.length - ROSTOS_NO_TOTAL}`}</Texto>
+                </View>
+              )}
+            </View>
+            <Texto variante="apoio" cor={cor.sobreDestaqueSuave} style={estilos.quemTexto}>
+              {`${saldos.length} ${saldos.length === 1 ? 'pessoa' : 'pessoas'} · ${rachasAbertos} ${rachasAbertos === 1 ? 'racha aberto' : 'rachas abertos'}`}
+            </Texto>
+          </View>
+        ) : (
+          <Texto variante="apoio" cor={cor.sobreDestaqueSuave}>
+            Ninguém te deve nada agora.
+          </Texto>
+        )}
+
+        {totalDasCotas > 0 && (
+          <View style={estilos.progresso}>
+            <View style={estilos.progressoTexto}>
+              <Texto variante="apoio" cor={cor.sobreDestaqueSuave}>
+                Já recebido
+              </Texto>
+              <Texto variante="apoio" cor={cor.sobreDestaque} style={estilos.numero}>
+                {`${dinheiro(recebido)} de ${dinheiro(totalDasCotas)}`}
+              </Texto>
+            </View>
+            <View style={estilos.trilho} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+              <View style={[estilos.cheio, { width: `${Math.round(fracaoRecebida * 100)}%` }]} />
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={estilos.acao}>
-        <Botao variante="primario" rotulo="Rachar uma compra" aoTocar={() => ir({ nome: 'escolherCompra' })} />
+        <Botao variante="primario" icone="add-circle-outline" rotulo="Rachar uma compra" aoTocar={() => ir({ nome: 'escolherCompra' })} />
       </View>
 
       {!temPix(chavePix) && (
         <Cartao destaque style={estilos.dica}>
-          <Texto variante="apoio">
-            Cadastre sua chave Pix e a cobrança já vai com o código copia e cola, no valor certo.
-          </Texto>
+          <View style={estilos.dicaLinha}>
+            <Ionicons name="qr-code-outline" size={22} color={cor.destaqueTexto} importantForAccessibility="no" accessibilityElementsHidden />
+            <Texto variante="apoio" style={estilos.dicaTexto}>
+              Cadastre sua chave Pix e a cobrança já vai com o QR Code e o copia e cola, no valor certo.
+            </Texto>
+          </View>
           <View style={estilos.dicaAcao}>
             <Botao variante="link" rotulo="Cadastrar chave Pix" aoTocar={() => ir({ nome: 'seuPix' })} />
           </View>
@@ -59,22 +114,8 @@ export function Rachar() {
       {saldos.length > 0 && (
         <Secao titulo="Quem te deve">
           <Lista>
-            {saldos.map(({ pessoa, devendo, pendentes }) => (
-              <View key={pessoa.id} style={estilos.linhaPessoa}>
-                <Avatar nome={pessoa.nome} categoria="outros" />
-                <View style={estilos.meio}>
-                  <Texto variante="corpoForte">{pessoa.nome}</Texto>
-                  <Texto variante="apoio" cor={cor.textoSuave}>
-                    {`${dinheiro(devendo)} · ${pendentes.length} ${pendentes.length === 1 ? 'pendência' : 'pendências'}`}
-                  </Texto>
-                </View>
-                <Botao
-                  compacto
-                  rotulo="Cobrar"
-                  nomeAcessivel={`Cobrar ${pessoa.nome}, ${dinheiro(devendo)}`}
-                  aoTocar={() => ir({ nome: 'cobranca', pessoaId: pessoa.id })}
-                />
-              </View>
+            {saldos.map((saldo) => (
+              <LinhaPessoa key={saldo.pessoa.id} saldo={saldo} aoTocar={() => ir({ nome: 'cobranca', pessoaId: saldo.pessoa.id })} />
             ))}
           </Lista>
         </Secao>
@@ -97,17 +138,71 @@ export function Rachar() {
 
       {temPix(chavePix) && (
         <View style={estilos.rodape}>
-          <Botao variante="link" rotulo="Como você recebe (Pix e transferência)" aoTocar={() => ir({ nome: 'seuPix' })} />
+          <Botao variante="link" icone="wallet-outline" rotulo="Como você recebe (Pix e transferência)" aoTocar={() => ir({ nome: 'seuPix' })} />
         </View>
       )}
     </Tela>
   );
 }
 
+/** Uma pessoa que te deve: a linha inteira abre a cobrança. */
+function LinhaPessoa({ saldo, aoTocar }: { saldo: Saldo; aoTocar: () => void }) {
+  const { pessoa, devendo, pendentes } = saldo;
+  const maisAntiga = pendentes.reduce((min, c) => (c.referente < min ? c.referente : min), pendentes[0].referente);
+  const quantas = `${pendentes.length} ${pendentes.length === 1 ? 'pendência' : 'pendências'}`;
+  return (
+    <Pressable
+      onPress={aoTocar}
+      accessibilityRole="button"
+      accessibilityLabel={`Cobrar ${pessoa.nome}, ${dinheiro(devendo)}, ${quantas}, desde ${dataCurta(maisAntiga)}`}
+      style={({ pressed }) => [estilos.linhaPessoa, pressed && estilos.pressionada]}
+    >
+      <Avatar nome={pessoa.nome} categoria={categoriaDaPessoa(pessoa.nome)} redondo />
+      <View style={estilos.meio}>
+        <Texto variante="corpoForte" numberOfLines={1}>
+          {pessoa.nome}
+        </Texto>
+        <Texto variante="apoio" cor={cor.textoSuave} numberOfLines={1}>
+          {`${quantas} · desde ${dataCurta(maisAntiga)}`}
+        </Texto>
+      </View>
+      <View style={estilos.fim}>
+        <Texto variante="valor">{dinheiro(devendo)}</Texto>
+        <View style={estilos.pilulaCobrar}>
+          <Texto variante="legenda" cor={cor.destaqueTexto}>
+            Cobrar
+          </Texto>
+          <Ionicons name="chevron-forward" size={14} color={cor.destaqueTexto} />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 const estilos = StyleSheet.create({
   total: { backgroundColor: cor.destaque, borderRadius: raio.l, padding: espaco.xl, gap: espaco.xs },
+  quem: { flexDirection: 'row', alignItems: 'center', gap: espaco.s, marginTop: espaco.xs },
+  rostos: { flexDirection: 'row' },
+  // Borda da cor do cartão: separa um rosto do outro quando se sobrepõem.
+  rosto: { borderRadius: raio.pilula, borderWidth: 2, borderColor: cor.destaque },
+  rostoSobreposto: { marginLeft: -espaco.s },
+  mais: {
+    width: LADO_DO_ROSTO + 4,
+    height: LADO_DO_ROSTO + 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: cor.trilhoSobreDestaque,
+  },
+  quemTexto: { flexShrink: 1 },
+  progresso: { marginTop: espaco.l, gap: espaco.s },
+  progressoTexto: { flexDirection: 'row', justifyContent: 'space-between', gap: espaco.s },
+  numero: { fontVariant: ['tabular-nums'] },
+  trilho: { height: 6, borderRadius: raio.pilula, backgroundColor: cor.trilhoSobreDestaque, overflow: 'hidden' },
+  cheio: { height: '100%', borderRadius: raio.pilula, backgroundColor: cor.sobreDestaque },
   acao: { marginTop: espaco.m },
   dica: { marginTop: espaco.m, gap: espaco.xs },
+  dicaLinha: { flexDirection: 'row', gap: espaco.m, alignItems: 'flex-start' },
+  dicaTexto: { flex: 1 },
   dicaAcao: { alignItems: 'flex-start', marginLeft: -espaco.s },
   linhaPessoa: {
     flexDirection: 'row',
@@ -116,7 +211,20 @@ const estilos = StyleSheet.create({
     minHeight: ALVO_MINIMO + 20,
     paddingVertical: espaco.m,
     paddingHorizontal: espaco.l,
+    backgroundColor: cor.fundo,
   },
+  pressionada: { backgroundColor: cor.superficieSuave },
   meio: { flex: 1, gap: 2 },
+  fim: { alignItems: 'flex-end', gap: espaco.xs },
+  pilulaCobrar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingLeft: espaco.s + 2,
+    paddingRight: espaco.xs + 2,
+    paddingVertical: 3,
+    borderRadius: raio.pilula,
+    backgroundColor: cor.destaqueSuave,
+  },
   rodape: { marginTop: espaco.l, alignItems: 'center' },
 });

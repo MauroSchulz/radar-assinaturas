@@ -10,7 +10,8 @@ import { dataCurta, dataLonga, diaDaSemana } from '../dominio/datas';
 import { chaveDoComerciante, nomeLegivel } from '../dominio/deteccao';
 import { dinheiro, porcentagem } from '../dominio/formato';
 import type { Transacao } from '../dominio/tipos';
-import { ASSINATURAS, FATURA } from '../estado/extrato';
+import { useFatura } from '../estado/conta';
+import { ASSINATURAS } from '../estado/extrato';
 import { abrirAssinatura, useNavegacao } from '../estado/navegacao';
 import { ALVO_MINIMO, cor, espaco, raio } from '../tema/tokens';
 
@@ -55,7 +56,7 @@ function LinhaCompra({ compra }: { compra: Transacao }) {
 
 export function Fatura() {
   const trocarAba = useNavegacao((s) => s.trocarAba);
-  const f = FATURA;
+  const f = useFatura();
   const usado = f.limite > 0 ? f.total / f.limite : 0;
   const parteAssinatura = f.total > 0 ? f.emAssinaturas / f.total : 0;
 
@@ -75,6 +76,12 @@ export function Fatura() {
           {`Limite disponível de ${dinheiro(f.limiteDisponivel)} (de ${dinheiro(f.limite)})`}
         </Texto>
       </View>
+
+      {f.pixNoCredito > 0 && (
+        <Texto variante="apoio" cor={cor.textoSuave} style={estilos.pixCredito}>
+          {`Inclui ${dinheiro(f.pixNoCredito)} de Pix no crédito (1ª parcela).`}
+        </Texto>
+      )}
 
       {f.emAssinaturas > 0 && (
         <Cartao destaque style={estilos.destaque}>
@@ -104,6 +111,7 @@ export function Fatura() {
 
 const estilos = StyleSheet.create({
   limite: { marginTop: espaco.l, gap: espaco.s },
+  pixCredito: { marginTop: espaco.s },
   destaque: { marginTop: espaco.l, gap: espaco.xs },
   link: { alignItems: 'flex-start', marginLeft: -espaco.s },
   linha: {

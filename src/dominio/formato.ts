@@ -15,6 +15,15 @@ export function dinheiro(centavos: number): string {
   return `${negativo ? '-' : ''}R$${ESPACO_FIXO}${reais},${resto}`;
 }
 
+/** Valor curto para rótulo de gráfico: `R$ 4,9 mil`, `R$ 850`, `R$ 1,2 mi`. */
+export function dinheiroCurto(centavos: number): string {
+  const reais = Math.round(centavos / 100);
+  const com1 = (n: number) => (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, '').replace('.', ',');
+  if (Math.abs(reais) >= 1_000_000) return `R$${ESPACO_FIXO}${com1(reais / 1_000_000)} mi`;
+  if (Math.abs(reais) >= 1_000) return `R$${ESPACO_FIXO}${com1(reais / 1_000)} mil`;
+  return `R$${ESPACO_FIXO}${reais}`;
+}
+
 /** 0.125 para `12,5%`; 0.1 para `10%`; com `casas = 2`, 0.1415 para `14,15%`. */
 export function porcentagem(fracao: number, casas = 1): string {
   const fator = 10 ** casas;

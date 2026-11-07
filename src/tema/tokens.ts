@@ -2,7 +2,7 @@ import { Appearance, type TextStyle } from 'react-native';
 import type { Categoria } from '../dominio/tipos';
 
 /**
- * Identidade do Radar: verde-esmeralda no topo e nos destaques (verde de dinheiro e de economia),
+ * Identidade do Radar: degradê verde-esmeralda → azul-petróleo no topo, verde-esmeralda nos destaques (verde de dinheiro e de economia),
  * fundo branco no claro e preto no escuro. Sem logo nem nome de banco. Toda cor e medida das telas sai daqui.
  *
  * Duas paletas, clara e escura, com as mesmas chaves. O app segue o tema do celular **ao abrir**:
@@ -27,10 +27,19 @@ export const CLARO = {
   destaqueTexto: '#047857',
   /** Quadro verde-claro de destaque, botão selecionado, pílula da aba ativa. */
   destaqueSuave: '#E2F4EA',
-  /** Faixa do topo do Início. */
+  /** Faixa do topo do Início: degradê de `faixa` (esquerda) a `faixaFim` (direita). */
   faixa: '#047857',
+  /** Azul-petróleo, o fim do degradê da faixa. */
+  faixaFim: '#0E7490',
+  /** Gráfico de gastos: a coluna em destaque e as outras (cinza que ainda passa 3:1 no fundo). */
+  barraDestaque: '#047857',
+  barraNeutra: '#87938C',
+  /** Botões e foto de perfil em cima da faixa: branco translúcido, deixa o degradê aparecer. */
+  vidroSobreFaixa: 'rgba(255,255,255,0.16)',
   sobreDestaque: '#FFFFFF',
   sobreDestaqueSuave: '#D1FAE5',
+  /** Trilho de barra de progresso e borda de avatar em cima do cartão verde. */
+  trilhoSobreDestaque: '#065F46',
   perigo: '#A3241C',
   /** Vermelho para texto direto no fundo. */
   perigoSobreFundo: '#A3241C',
@@ -62,8 +71,13 @@ export const ESCURO: Paleta = {
   destaqueTexto: '#6EE7B7',
   destaqueSuave: '#0F2E23',
   faixa: '#064E3B',
+  faixaFim: '#164E63',
+  vidroSobreFaixa: 'rgba(255,255,255,0.12)',
+  barraDestaque: '#10B981',
+  barraNeutra: '#66706B',
   sobreDestaque: '#FFFFFF',
   sobreDestaqueSuave: '#D1FAE5',
+  trilhoSobreDestaque: '#065F46',
   perigo: '#FF8F87',
   perigoSobreFundo: '#FF8F87',
   perigoFundo: '#3B1715',

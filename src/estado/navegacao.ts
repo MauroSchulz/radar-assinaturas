@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { TipoEnvio } from '../dominio/conta';
 import type { OrigemRacha } from '../dominio/racha';
 
 export type Aba = 'inicio' | 'assinaturas' | 'rachar' | 'investir' | 'alertas';
@@ -21,7 +22,9 @@ export type Rota =
   | { nome: 'novaCaixinha'; sugestao?: SugestaoDeCaixinha }
   | { nome: 'fatura' }
   | { nome: 'emprestimo' }
-  | { nome: 'cobranca'; pessoaId: string; rachaId?: string };
+  | { nome: 'cobranca'; pessoaId: string; rachaId?: string }
+  | { nome: 'enviar'; modo: TipoEnvio }
+  | { nome: 'comprovante'; id: string };
 
 /**
  * Cinco abas e, por cima delas, uma pilha de telas. `ir` empilha, `voltar` desempilha,

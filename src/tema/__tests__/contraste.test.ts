@@ -27,6 +27,9 @@ const PARES: [keyof Paleta, keyof Paleta][] = [
   ['sobreDestaqueSuave', 'destaque'],
   ['sobreDestaque', 'faixa'],
   ['sobreDestaqueSuave', 'faixa'],
+  // A faixa é um degradê: o texto tem que passar nas duas pontas.
+  ['sobreDestaque', 'faixaFim'],
+  ['sobreDestaqueSuave', 'faixaFim'],
   ['sobreDestaque', 'selo'],
   ['perigo', 'fundo'],
   ['perigo', 'superficie'],

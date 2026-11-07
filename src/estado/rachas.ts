@@ -93,13 +93,17 @@ export const useRachas = create<EstadoRachas>()(
       name: 'radar.rachas.v1',
       storage: createJSONStorage(() => AsyncStorage),
       // Versão 2: entrou a forma "QR Code". Quem já mandava o copia e cola passa a mandar o QR também.
-      version: 2,
+      // Versão 3: a demonstração ganhou a Júlia e a pizza; os rachas salvos voltam para a demonstração
+      // nova (apagando o `dia`, o `merge` trata como outro dia). Amigos e como você recebe ficam.
+      version: 3,
       migrate: (salvo, versao) => {
-        const s = salvo as Partial<EstadoRachas> | undefined;
-        if (s?.formas && versao < 2 && s.formas.includes('pixCopiaECola') && !s.formas.includes('qrCode')) {
-          return { ...s, formas: [...s.formas, 'qrCode'] } as EstadoRachas;
+        let s = salvo as Partial<EstadoRachas> | undefined;
+        if (!s) return salvo as EstadoRachas;
+        if (s.formas && versao < 2 && s.formas.includes('pixCopiaECola') && !s.formas.includes('qrCode')) {
+          s = { ...s, formas: [...s.formas, 'qrCode'] };
         }
-        return salvo as EstadoRachas;
+        if (versao < 3) s = { ...s, dia: '' };
+        return s as EstadoRachas;
       },
       partialize: (s) => ({
         dia: s.dia,

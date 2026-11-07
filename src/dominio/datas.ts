@@ -50,7 +50,7 @@ export function diasEntre(de: DataISO, ate: DataISO): number {
   return Math.round((deISO(ate).getTime() - deISO(de).getTime()) / 86_400_000);
 }
 
-const MESES = [
+export const MESES = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ];

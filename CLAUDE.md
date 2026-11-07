@@ -12,8 +12,9 @@ Leia o `README.md` primeiro. Responda sempre em português do Brasil.
   (nunca `toLocaleString`: o Hermes não traz os dados de idioma completos).
 - **Datas como `AAAA-MM-DD`** e só pelas funções de `src/dominio/datas.ts`. "Hoje" é `hoje()`.
 - **Cor e medida só de `src/tema/tokens.ts`.** Visual de conceito "como seria dentro do app do
-  banco" (pedido do Mauro): verde-esmeralda `#047857` na faixa do topo e nos destaques (o roxo saiu em
-  07/11/2026 por lembrar demais o Nubank),
+  banco" (pedido do Mauro): verde-esmeralda `#047857` nos destaques (o roxo saiu em
+  07/11/2026 por lembrar demais o Nubank) e, na faixa do topo do Início, um degradê horizontal
+  esmeralda → azul-petróleo `#0E7490` (`FundoDegrade`, tokens `faixa` e `faixaFim`),
   fundo branco. **Sem caixas cinzas**: conteúdo em seções separadas por linha fina de ponta a ponta
   (`Secao`), listas soltas no fundo (`Lista`), e quadro verde-claro só para destaque (`<Cartao destaque>`).
   **Sem logo e sem o nome do banco na interface**:
