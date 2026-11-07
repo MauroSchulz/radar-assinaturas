@@ -6,7 +6,7 @@ import { Texto } from './Texto';
 
 /**
  * Bloco de conteúdo. Por padrão é aberto, sem caixa: a separação entre blocos vem das
- * linhas de ponta a ponta das seções. Com `destaque`, vira um quadro lilás, para o que
+ * linhas de ponta a ponta das seções. Com `destaque`, vira um quadro verde-claro, para o que
  * merece chamar atenção (economia, dica, previsão).
  */
 export function Cartao({ children, style, destaque }: { children: ReactNode; style?: StyleProp<ViewStyle>; destaque?: boolean }) {

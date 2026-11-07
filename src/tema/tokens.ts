@@ -2,8 +2,8 @@ import { Appearance, type TextStyle } from 'react-native';
 import type { Categoria } from '../dominio/tipos';
 
 /**
- * Visual de conceito "dentro do app do banco": roxo no topo e nos destaques. Sem logo nem nome
- * de banco. Toda cor e medida das telas sai daqui.
+ * Identidade do Radar: verde-esmeralda no topo e nos destaques (verde de dinheiro e de economia),
+ * fundo branco no claro e preto no escuro. Sem logo nem nome de banco. Toda cor e medida das telas sai daqui.
  *
  * Duas paletas, clara e escura, com as mesmas chaves. O app segue o tema do celular **ao abrir**:
  * as cores entram nos estilos uma vez só, então trocar o tema com o app aberto só aparece depois
@@ -13,24 +13,24 @@ import type { Categoria } from '../dominio/tipos';
 export const CLARO = {
   fundo: '#FFFFFF',
   /** Texto secundário direto no fundo. */
-  textoSobreFundo: '#5E5869',
+  textoSobreFundo: '#55625B',
   /** Atalhos redondos, faixa "te devem", botão secundário, barra de abas. */
-  superficie: '#F4F3F7',
+  superficie: '#F2F5F3',
   /** Linha pressionada, trilho da barra de progresso. */
-  superficieSuave: '#E9E7EF',
-  borda: '#E4E1EA',
-  texto: '#1A1523',
-  textoSuave: '#5E5869',
-  /** Roxo de **fundo**: botão principal, cartões de total, ficha marcada, barra de progresso. */
-  destaque: '#820AD1',
-  /** Roxo de **texto e ícone**: links, Voltar, valores em destaque, aba ativa. */
-  destaqueTexto: '#820AD1',
-  /** Quadro lilás de destaque, botão selecionado, pílula da aba ativa. */
-  destaqueSuave: '#F1E6FB',
+  superficieSuave: '#E5ECE8',
+  borda: '#E0E6E2',
+  texto: '#14201A',
+  textoSuave: '#55625B',
+  /** Verde de **fundo**: botão principal, cartões de total, ficha marcada, barra de progresso. */
+  destaque: '#047857',
+  /** Verde de **texto e ícone**: links, Voltar, valores em destaque, aba ativa. */
+  destaqueTexto: '#047857',
+  /** Quadro verde-claro de destaque, botão selecionado, pílula da aba ativa. */
+  destaqueSuave: '#E2F4EA',
   /** Faixa do topo do Início. */
-  faixa: '#820AD1',
+  faixa: '#047857',
   sobreDestaque: '#FFFFFF',
-  sobreDestaqueSuave: '#E9D5F7',
+  sobreDestaqueSuave: '#D1FAE5',
   perigo: '#A3241C',
   /** Vermelho para texto direto no fundo. */
   perigoSobreFundo: '#A3241C',
@@ -42,25 +42,28 @@ export const CLARO = {
   info: '#24496F',
   infoFundo: '#DFE8F2',
   /** Sombra da barra de abas flutuante. */
-  sombra: '#1A1523',
+  sombra: '#14201A',
+  /** QR Code: sempre preto no branco, nos dois temas (código invertido nem todo banco lê). */
+  qrFundo: '#FFFFFF',
+  qrModulo: '#000000',
 };
 
 export type Paleta = Record<keyof typeof CLARO, string>;
 
 export const ESCURO: Paleta = {
   fundo: '#000000',
-  textoSobreFundo: '#A9A5B2',
-  superficie: '#1C1B20',
-  superficieSuave: '#2A2930',
-  borda: '#26252B',
-  texto: '#F5F4F7',
-  textoSuave: '#A9A5B2',
-  destaque: '#8A2BE2',
-  destaqueTexto: '#C49BF5',
-  destaqueSuave: '#2B1D3D',
-  faixa: '#2E1A52',
+  textoSobreFundo: '#A4AEA8',
+  superficie: '#1A1D1C',
+  superficieSuave: '#272B29',
+  borda: '#232725',
+  texto: '#F3F6F4',
+  textoSuave: '#A4AEA8',
+  destaque: '#047857',
+  destaqueTexto: '#6EE7B7',
+  destaqueSuave: '#0F2E23',
+  faixa: '#064E3B',
   sobreDestaque: '#FFFFFF',
-  sobreDestaqueSuave: '#EBDDFB',
+  sobreDestaqueSuave: '#D1FAE5',
   perigo: '#FF8F87',
   perigoSobreFundo: '#FF8F87',
   perigoFundo: '#3B1715',
@@ -70,6 +73,8 @@ export const ESCURO: Paleta = {
   info: '#A3C8F2',
   infoFundo: '#15263B',
   sombra: '#000000',
+  qrFundo: '#FFFFFF',
+  qrModulo: '#000000',
 };
 
 /** O tema do celular na hora em que o app abriu. */

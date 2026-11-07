@@ -7,7 +7,7 @@ import { LinhaRacha } from '../componentes/LinhaRacha';
 import { Tela } from '../componentes/Tela';
 import { Texto } from '../componentes/Texto';
 import { dinheiro } from '../dominio/formato';
-import { cobrar, temPix } from '../estado/cobrar';
+import { temPix } from '../estado/cobrar';
 import { useNavegacao } from '../estado/navegacao';
 import { useRachas } from '../estado/rachas';
 import { useCotas, useSaldos } from '../estado/radar';
@@ -72,7 +72,7 @@ export function Rachar() {
                   compacto
                   rotulo="Cobrar"
                   nomeAcessivel={`Cobrar ${pessoa.nome}, ${dinheiro(devendo)}`}
-                  aoTocar={() => cobrar(pessoa, cotas.filter((c) => c.pessoaId === pessoa.id))}
+                  aoTocar={() => ir({ nome: 'cobranca', pessoaId: pessoa.id })}
                 />
               </View>
             ))}
@@ -97,7 +97,7 @@ export function Rachar() {
 
       {temPix(chavePix) && (
         <View style={estilos.rodape}>
-          <Botao variante="link" rotulo="Alterar sua chave Pix" aoTocar={() => ir({ nome: 'seuPix' })} />
+          <Botao variante="link" rotulo="Como você recebe (Pix e transferência)" aoTocar={() => ir({ nome: 'seuPix' })} />
         </View>
       )}
     </Tela>

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Pagar com Pix</title>
+<!--
+  Página do link de cobrança do Radar de Assinaturas (ver src/dominio/linkPix.ts).
+  O código Pix chega depois do # em base64url: #copiar=... ou #qr=...
+  Nada é enviado a servidor nenhum: a página só lê o endereço, copia e desenha o QR.
+-->
+<style>
+  :root {
+    --fundo: #F2F5F3; --cartao: #FFFFFF; --texto: #14201A; --suave: #55625B; --borda: #E0E6E2;
+    --destaque: #047857; --sobreDestaque: #FFFFFF; --destaqueSuave: #E2F4EA; --destaqueTexto: #047857;
+    --perigo: #B42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #000000; --cartao: #1A1D1C; --texto: #F3F6F4; --suave: #A4AEA8; --borda: #232725;
+      --destaque: #047857; --sobreDestaque: #FFFFFF; --destaqueSuave: #0F2E23; --destaqueTexto: #6EE7B7;
+      --perigo: #F97066;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--fundo); color: var(--texto);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 440px; margin: 0 auto; padding: 24px 16px 40px; }
+  .marca { font-size: 13px; font-weight: 600; color: var(--destaqueTexto); letter-spacing: .02em; }
+  h1 { font-size: 22px; margin: 6px 0 2px; }
+  .valor { font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 4px 0 0; }
+  .para { color: var(--suave); margin: 0 0 20px; }
+  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .cartao h2 { font-size: 15px; margin: 0 0 10px; }
+  button {
+    width: 100%; min-height: 52px; border: 0; border-radius: 26px; cursor: pointer;
+    background: var(--destaque); color: var(--sobreDestaque); font: inherit; font-weight: 600;
+  }
+  button:focus-visible { outline: 3px solid var(--destaqueTexto); outline-offset: 2px; }
+  .aviso {
+    margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; font-weight: 600;
+    background: var(--destaqueSuave); color: var(--destaqueTexto);
+  }
+  .codigo {
+    margin: 12px 0 0; padding: 10px; border-radius: 10px; background: var(--fundo);
+    font: 12px/1.4 ui-monospace, Consolas, monospace; color: var(--suave); word-break: break-all;
+  }
+  .qr { display: flex; justify-content: center; }
+  .qr svg { width: 100%; max-width: 280px; height: auto; background: #FFFFFF; border-radius: 12px; }
+  .dica { color: var(--suave); font-size: 14px; margin: 10px 0 0; }
+  ol.dica { padding-left: 20px; }
+  .erro { color: var(--perigo); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="marca">Radar de Assinaturas · cobrança do racha</div>
+
+  <section id="invalido" hidden>
+    <h1>Este link de Pix está incompleto</h1>
+    <p class="para erro">Parte do link se perdeu ao copiar. Peça para quem te cobrou mandar de novo.</p>
+  </section>
+
+  <section id="ok" hidden>
+    <h1>Pagar com Pix</h1>
+    <p class="valor" id="valor"></p>
+    <p class="para" id="para"></p>
+
+    <div class="cartao" id="blocoCopiar">
+      <h2>1. Pix copia e cola</h2>
+      <button id="copiar" type="button">Copiar código Pix</button>
+      <p class="aviso" id="copiado" role="status" hidden>Código copiado! Agora cole no app do seu banco.</p>
+      <ol class="dica">
+        <li>Abra o app do seu banco e vá em <strong>Pix</strong>.</li>
+        <li>Escolha <strong>Pix copia e cola</strong> e cole o código.</li>
+        <li>Confira o nome de quem recebe antes de confirmar.</li>
+      </ol>
+      <div class="codigo" id="codigo"></div>
+    </div>
+
+    <div class="cartao" id="blocoQr">
+      <h2>2. QR Code</h2>
+      <div class="qr" id="qr" role="img"></div>
+      <p class="dica" id="semQr" hidden>Não deu para desenhar o QR Code agora. Use o copia e cola acima.</p>
+      <p class="dica">No app do banco, toque em <strong>Pix → Ler QR Code</strong>. Se abriu este link no
+        próprio celular, tire um print e use a opção de ler da galeria.</p>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+(function () {
+  var ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+  function deBase64url(codigo) {
+    var saida = '';
+    for (var i = 0; i < codigo.length; i += 4) {
+      var v = [0, 1, 2, 3].map(function (k) { return i + k < codigo.length ? ALFABETO.indexOf(codigo[i + k]) : 0; });
+      if (v.indexOf(-1) !== -1) return null;
+      var n = (v[0] << 18) | (v[1] << 12) | (v[2] << 6) | v[3];
+      saida += String.fromCharCode((n >> 16) & 255);
+      if (i + 2 < codigo.length) saida += String.fromCharCode((n >> 8) & 255);
+      if (i + 3 < codigo.length) saida += String.fromCharCode(n & 255);
+    }
+    return saida;
+  }
+
+  // Mesmo CRC do app (src/dominio/pix.ts): CRC16-CCITT, começa em FFFF.
+  function crc16(texto) {
+    var crc = 0xFFFF;
+    for (var i = 0; i < texto.length; i++) {
+      crc ^= texto.charCodeAt(i) << 8;
+      for (var b = 0; b < 8; b++) crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+    }
+    return ('0000' + crc.toString(16).toUpperCase()).slice(-4);
+  }
+
+  // Campos do BR Code: id (2 dígitos) + tamanho (2 dígitos) + valor.
+  function campos(payload) {
+    var mapa = {}, i = 0;
+    while (i + 4 <= payload.length) {
+      var id = payload.substr(i, 2), tam = parseInt(payload.substr(i + 2, 2), 10);
+      if (isNaN(tam)) break;
+      mapa[id] = payload.substr(i + 4, tam);
+      i += 4 + tam;
+    }
+    return mapa;
+  }
+
+  function reais(texto) {
+    var partes = Number(texto).toFixed(2).split('.');
+    return 'R$ ' + partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + partes[1];
+  }
+
+  var m = /^#(copiar|qr)=([A-Za-z0-9_-]+)$/.exec(location.hash);
+  var payload = m && deBase64url(m[2]);
+  var valido = payload && payload.indexOf('000201') === 0 && payload.length > 8 &&
+    payload.slice(-8, -4) === '6304' && crc16(payload.slice(0, -4)) === payload.slice(-4);
+  if (!valido) { document.getElementById('invalido').hidden = false; return; }
+
+  var modo = m[1];
+  var c = campos(payload);
+  document.getElementById('ok').hidden = false;
+  document.getElementById('valor').textContent = c['54'] ? reais(c['54']) : 'Valor a combinar';
+  document.getElementById('para').textContent = 'Para ' + (c['59'] || 'quem te cobrou') + (c['60'] ? ' · ' + c['60'] : '');
+  document.getElementById('codigo').textContent = payload;
+  document.title = (c['54'] ? reais(c['54']) + ' · ' : '') + 'Pagar com Pix';
+
+  // No link do QR, o QR vem primeiro.
+  if (modo === 'qr') {
+    var ok = document.getElementById('ok');
+    ok.insertBefore(document.getElementById('blocoQr'), document.getElementById('blocoCopiar'));
+    document.querySelector('#blocoQr h2').textContent = 'QR Code';
+    document.querySelector('#blocoCopiar h2').textContent = 'Ou: Pix copia e cola';
+  }
+
+  var copiado = document.getElementById('copiado');
+  function copiarPorTextarea() {
+    var t = document.createElement('textarea');
+    t.value = payload; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select();
+    var deu = false;
+    try { deu = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(t);
+    return deu;
+  }
+  function copiar() {
+    var avisar = function () { copiado.hidden = false; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(payload).then(avisar, function () { if (copiarPorTextarea()) avisar(); });
+    }
+    if (copiarPorTextarea()) avisar();
+    return Promise.resolve();
+  }
+  document.getElementById('copiar').addEventListener('click', copiar);
+  // No link de copiar, tenta copiar sozinho ao abrir. Alguns navegadores só deixam depois de um
+  // toque; aí o botão continua ali.
+  if (modo === 'copiar' && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(payload).then(function () { copiado.hidden = false; }, function () {});
+  }
+
+  // QR Code: módulos escuros num SVG, com margem de 4 módulos, como no app.
+  var caixa = document.getElementById('qr');
+  try {
+    var qr = qrcode(0, 'M'); qr.addData(payload); qr.make();
+    var n = qr.getModuleCount(), lado = n + 8, caminho = '';
+    for (var l = 0; l < n; l++) for (var col = 0; col < n; col++) {
+      if (qr.isDark(l, col)) caminho += 'M' + (col + 4) + ' ' + (l + 4) + 'h1v1h-1z';
+    }
+    caixa.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + lado + ' ' + lado +
+      '" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#FFFFFF"/><path fill="#000000" d="' + caminho + '"/></svg>';
+    caixa.setAttribute('aria-label', 'QR Code Pix' + (c['54'] ? ' de ' + reais(c['54']) : ''));
+  } catch (e) {
+    caixa.hidden = true;
+    document.getElementById('semQr').hidden = false;
+  }
+})();
+</script>
+</body>
+</html>

@@ -12,13 +12,14 @@ Leia o `README.md` primeiro. Responda sempre em português do Brasil.
   (nunca `toLocaleString`: o Hermes não traz os dados de idioma completos).
 - **Datas como `AAAA-MM-DD`** e só pelas funções de `src/dominio/datas.ts`. "Hoje" é `hoje()`.
 - **Cor e medida só de `src/tema/tokens.ts`.** Visual de conceito "como seria dentro do app do
-  banco" (pedido do Mauro, 06/11/2026): roxo `#820AD1` na faixa do topo do Início e nos destaques,
+  banco" (pedido do Mauro): verde-esmeralda `#047857` na faixa do topo e nos destaques (o roxo saiu em
+  07/11/2026 por lembrar demais o Nubank),
   fundo branco. **Sem caixas cinzas**: conteúdo em seções separadas por linha fina de ponta a ponta
-  (`Secao`), listas soltas no fundo (`Lista`), e quadro lilás só para destaque (`<Cartao destaque>`).
+  (`Secao`), listas soltas no fundo (`Lista`), e quadro verde-claro só para destaque (`<Cartao destaque>`).
   **Sem logo e sem o nome do banco na interface**:
   o app continua sendo o Radar, e o banco é só a referência da apresentação.
 - **Dois temas** (`CLARO` e `ESCURO` em `tokens.ts`, mesmas chaves): o app segue o tema do celular **ao abrir**.
-  Roxo de fundo é `cor.destaque`; roxo de texto e ícone é `cor.destaqueTexto` (no escuro são diferentes).
+  Verde de fundo é `cor.destaque`; verde de texto e ícone é `cor.destaqueTexto` (no escuro são diferentes).
   Cor nova entra nas duas paletas e no par certo de `src/tema/__tests__/contraste.test.ts`.
 - **Barra de abas flutuante** (`BarraAbas`): fica por cima do conteúdo. A `Tela` já reserva o espaço
   embaixo (`espacoParaBarra`); tela que não usar `Tela` precisa reservar também.

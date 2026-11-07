@@ -30,7 +30,7 @@ export function Tela({ titulo, sobretitulo, topo, faixa, children }: Props) {
       >
         {faixa && (
           <View style={estilos.faixa}>
-            {/* Puxar a tela para baixo no iPhone mostra roxo, não branco, acima da faixa. */}
+            {/* Puxar a tela para baixo no iPhone mostra verde, não branco, acima da faixa. */}
             <View style={estilos.faixaAcima} />
             {faixa}
           </View>

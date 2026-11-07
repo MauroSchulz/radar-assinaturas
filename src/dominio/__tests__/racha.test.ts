@@ -1,4 +1,5 @@
 import { gerarExtrato } from '../../dados/extrato';
+import { linkDoPix } from '../linkPix';
 import { detectarAssinaturas } from '../deteccao';
 import {
   chaveDaCota,
@@ -117,30 +118,58 @@ describe('suaParteMensal', () => {
 });
 
 describe('mensagemDeCobranca', () => {
-  it('lista cada item, o total e o Pix', () => {
-    const msg = mensagemDeCobranca(
-      'Bruno',
-      [
-        { titulo: 'Churrascaria', referente: '2026-11-05', valor: 12000 },
-        { titulo: 'Netflix', referente: '2026-10-31', valor: 2245 },
-      ],
-      '000201PIX',
-      HOJE,
-    );
-    expect(msg).toBe(
+  const itens = [
+    { titulo: 'Churrascaria', referente: '2026-11-05', valor: 12000 },
+    { titulo: 'Netflix', referente: '2026-10-31', valor: 2245 },
+  ];
+
+  it('lista cada item, o total e a única forma de pagamento escolhida', () => {
+    expect(mensagemDeCobranca('Bruno', itens, { pixCopiaECola: '000201PIX' }, HOJE)).toBe(
       [
         'Oi, Bruno! Sua parte no racha:',
         '• Churrascaria (5 nov): R$ 120,00',
         '• Netflix (31 out): R$ 22,45',
         'Total: R$ 142,45',
         '',
-        'Pix copia e cola:\n000201PIX',
+        'Como pagar:',
+        'Pix copia e cola (toque no link e o código é copiado, já com o valor):',
+        linkDoPix('000201PIX', 'copiar'),
       ].join('\n'),
     );
   });
 
-  it('sem chave Pix, pede o Pix do jeito de sempre', () => {
-    const msg = mensagemDeCobranca('Ana', [{ titulo: 'Pizza', referente: HOJE, valor: 3000 }], null, HOJE);
+  it('com várias formas, numera na ordem fixa (copia e cola, chave, QR Code, transferência, dinheiro), com uma linha em branco entre elas', () => {
+    const msg = mensagemDeCobranca(
+      'Bruno',
+      itens,
+      {
+        dinheiro: true,
+        transferencia: { banco: 'Banco Exemplo', agencia: '0001', conta: '1234-5', titular: 'Mauro Schulz' },
+        chavePix: { tipo: 'celular', chave: '+5511987654321' },
+        qrCode: '000201PIX',
+        pixCopiaECola: '000201PIX',
+      },
+      HOJE,
+    );
+    expect(msg.split('\n').slice(5)).toEqual([
+      'Como pagar (escolha uma):',
+      '',
+      '1) Pix copia e cola (toque no link e o código é copiado, já com o valor):',
+      linkDoPix('000201PIX', 'copiar'),
+      '',
+      '2) Chave Pix (celular): +5511987654321',
+      '',
+      '3) QR Code (para ler com o app do banco):',
+      linkDoPix('000201PIX', 'qr'),
+      '',
+      '4) Transferência: Banco Exemplo · agência 0001 · conta 1234-5 · Mauro Schulz',
+      '',
+      '5) Dinheiro, na próxima vez que a gente se encontrar.',
+    ]);
+  });
+
+  it('sem nenhuma forma, pede o Pix do jeito de sempre', () => {
+    const msg = mensagemDeCobranca('Ana', [{ titulo: 'Pizza', referente: HOJE, valor: 3000 }], {}, HOJE);
     expect(msg).not.toContain('Total');
     expect(msg.endsWith('Me manda por Pix quando puder?')).toBe(true);
   });

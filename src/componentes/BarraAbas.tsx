@@ -35,7 +35,7 @@ export function espacoParaBarra(insetBaixo: number): number {
 
 /**
  * Barra de abas flutuante: uma pílula sobre o conteúdo, só com ícones. A aba ativa fica num
- * círculo roxo. O nome de cada aba continua valendo para o leitor de tela.
+ * círculo verde. O nome de cada aba continua valendo para o leitor de tela.
  */
 export function BarraAbas() {
   const atual = useNavegacao((s) => s.aba);

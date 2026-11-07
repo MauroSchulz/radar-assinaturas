@@ -7,6 +7,14 @@
 
 export type TipoChave = 'cpf' | 'cnpj' | 'celular' | 'email' | 'aleatoria';
 
+export const NOME_DO_TIPO_DE_CHAVE: Record<TipoChave, string> = {
+  cpf: 'CPF',
+  cnpj: 'CNPJ',
+  celular: 'Celular',
+  email: 'E-mail',
+  aleatoria: 'Chave aleatória',
+};
+
 export interface DadosPix {
   chave: string;
   nome: string;

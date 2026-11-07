@@ -8,6 +8,7 @@ import { cor, ESQUEMA } from './src/tema/tokens';
 import { Alertas } from './src/telas/Alertas';
 import { Assinaturas } from './src/telas/Assinaturas';
 import { CaixinhaDetalhe } from './src/telas/CaixinhaDetalhe';
+import { Cobranca } from './src/telas/Cobranca';
 import { Detalhe } from './src/telas/Detalhe';
 import { Emprestimo } from './src/telas/Emprestimo';
 import { EscolherCompra } from './src/telas/EscolherCompra';
@@ -40,6 +41,8 @@ function TelaDaRota({ rota }: { rota: Rota }) {
       return <Fatura />;
     case 'emprestimo':
       return <Emprestimo />;
+    case 'cobranca':
+      return <Cobranca pessoaId={rota.pessoaId} rachaId={rota.rachaId} />;
   }
 }
 

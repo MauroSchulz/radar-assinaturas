@@ -20,7 +20,8 @@ export type Rota =
   | { nome: 'caixinha'; id: string }
   | { nome: 'novaCaixinha'; sugestao?: SugestaoDeCaixinha }
   | { nome: 'fatura' }
-  | { nome: 'emprestimo' };
+  | { nome: 'emprestimo' }
+  | { nome: 'cobranca'; pessoaId: string; rachaId?: string };
 
 /**
  * Cinco abas e, por cima delas, uma pilha de telas. `ir` empilha, `voltar` desempilha,

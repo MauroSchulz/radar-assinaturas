@@ -8,6 +8,8 @@
  */
 import { dataCurta, hoje, type DataISO } from './datas';
 import { dinheiro } from './formato';
+import { linkDoPix } from './linkPix';
+import { NOME_DO_TIPO_DE_CHAVE, type TipoChave } from './pix';
 import type { Assinatura } from './tipos';
 
 export interface Pessoa {
@@ -112,11 +114,53 @@ export function suaParteMensal(assinatura: Assinatura, rachas: Racha[]): number 
   return dividir(assinatura.custoMensal, racha.pessoas.length, racha.incluiVoce).suaParte;
 }
 
-/** Texto pronto para mandar no WhatsApp. `pix` é o copia e cola, quando há chave cadastrada. */
+/* ---------- Cobrança ---------- */
+
+export type FormaDePagamento = 'pixCopiaECola' | 'chavePix' | 'qrCode' | 'transferencia' | 'dinheiro';
+
+/** Ordem em que as formas aparecem na tela e na mensagem. */
+export const FORMAS_DE_PAGAMENTO: FormaDePagamento[] = ['pixCopiaECola', 'chavePix', 'qrCode', 'transferencia', 'dinheiro'];
+
+export interface DadosTransferencia {
+  banco: string;
+  agencia: string;
+  conta: string;
+}
+
+/**
+ * O que vai na mensagem: cada forma só entra se veio preenchida. `pixCopiaECola` e `qrCode`
+ * recebem o código Pix (o payload); na mensagem eles viram links (ver `linkPix.ts`).
+ */
+export interface FormasNaMensagem {
+  pixCopiaECola?: string;
+  qrCode?: string;
+  chavePix?: { tipo: TipoChave; chave: string };
+  transferencia?: DadosTransferencia & { titular: string };
+  dinheiro?: boolean;
+}
+
+function linhaDaForma(forma: FormaDePagamento, f: FormasNaMensagem): string | null {
+  switch (forma) {
+    case 'pixCopiaECola':
+      return f.pixCopiaECola ? `Pix copia e cola (toque no link e o código é copiado, já com o valor):\n${linkDoPix(f.pixCopiaECola, 'copiar')}` : null;
+    case 'chavePix':
+      return f.chavePix ? `Chave Pix (${NOME_DO_TIPO_DE_CHAVE[f.chavePix.tipo].toLowerCase()}): ${f.chavePix.chave}` : null;
+    case 'qrCode':
+      return f.qrCode ? `QR Code (para ler com o app do banco):\n${linkDoPix(f.qrCode, 'qr')}` : null;
+    case 'transferencia': {
+      const t = f.transferencia;
+      return t ? `Transferência: ${t.banco} · agência ${t.agencia} · conta ${t.conta} · ${t.titular}` : null;
+    }
+    case 'dinheiro':
+      return f.dinheiro ? 'Dinheiro, na próxima vez que a gente se encontrar.' : null;
+  }
+}
+
+/** Texto pronto para mandar no WhatsApp, com as formas de pagamento escolhidas. */
 export function mensagemDeCobranca(
   nome: string,
   itens: { titulo: string; referente: DataISO; valor: number }[],
-  pix: string | null,
+  formas: FormasNaMensagem,
   dataHoje: DataISO = hoje(),
 ): string {
   const total = itens.reduce((s, i) => s + i.valor, 0);
@@ -124,6 +168,12 @@ export function mensagemDeCobranca(
   const partes = [`Oi, ${nome}! Sua parte no racha:`, ...linhas];
   if (itens.length > 1) partes.push(`Total: ${dinheiro(total)}`);
   partes.push('');
-  partes.push(pix ? `Pix copia e cola:\n${pix}` : 'Me manda por Pix quando puder?');
+
+  const opcoes = FORMAS_DE_PAGAMENTO.map((forma) => linhaDaForma(forma, formas)).filter((l): l is string => l !== null);
+  if (opcoes.length === 0) partes.push('Me manda por Pix quando puder?');
+  else if (opcoes.length === 1) partes.push(`Como pagar:\n${opcoes[0]}`);
+  // Uma linha em branco entre as opções: no WhatsApp os links longos quebram em várias linhas
+  // e, sem o respiro, não dá para ver onde uma opção termina e a outra começa.
+  else partes.push(`Como pagar (escolha uma):\n\n${opcoes.map((o, i) => `${i + 1}) ${o}`).join('\n\n')}`);
   return partes.join('\n');
 }

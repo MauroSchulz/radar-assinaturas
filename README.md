@@ -43,6 +43,11 @@ fosse toda sua.
 - **Cobrança com Pix pronto.** O botão "Cobrar" monta a mensagem com o valor e um **Pix copia
   e cola** de verdade (padrão BR Code do Banco Central, com CRC16), no valor exato que a pessoa
   deve. Ela cola no app do banco e paga. A regra está em [`src/dominio/pix.ts`](src/dominio/pix.ts).
+- **Link que copia o Pix.** O WhatsApp não copia texto com um toque, então o copia e cola e o
+  QR Code vão na mensagem como links para uma página do projeto
+  ([`docs/pix/`](docs/pix/index.html), no GitHub Pages). Ela copia o código ao abrir e desenha o
+  QR. O código vai depois do `#`, que o navegador não envia a servidor nenhum
+  ([`src/dominio/linkPix.ts`](src/dominio/linkPix.ts)).
 - **Sem centavo perdido.** R$ 10,00 em três dá R$ 3,33 + R$ 3,33 + R$ 3,34: o centavo que sobra
   fica com quem criou o racha ([`src/dominio/racha.ts`](src/dominio/racha.ts)).
 
@@ -86,7 +91,7 @@ Fica em [`src/dominio/deteccao.ts`](src/dominio/deteccao.ts) e não depende de t
 ## Telas
 
 O app segue o tema do celular: claro ou escuro. A barra de baixo flutua sobre o conteúdo, só com
-ícones; a aba ativa fica num círculo roxo.
+ícones; a aba ativa fica num círculo verde.
 
 
 - **Início**: total por mês e por ano, os 3 alertas mais urgentes e as cobranças dos próximos 7 dias.
@@ -143,4 +148,5 @@ src/estado/      o que fica salvo no aparelho (decisões, rachas, chave Pix) e n
 src/tema/        cores, espaços e tipografia
 src/componentes/ peças reaproveitadas entre as telas
 src/telas/       Início, Assinaturas, Rachar, Investir, Alertas e as telas que abrem por cima delas
+docs/pix/        a página que o link de cobrança abre (copia o Pix e mostra o QR Code)
 ```

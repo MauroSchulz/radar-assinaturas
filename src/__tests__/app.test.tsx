@@ -3,6 +3,7 @@ import { Share } from 'react-native';
 import App from '../../App';
 import { simularEmprestimo } from '../dominio/emprestimo';
 import { dinheiro } from '../dominio/formato';
+import { deBase64url } from '../dominio/linkPix';
 import { useLoja } from '../estado/loja';
 import { useNavegacao } from '../estado/navegacao';
 import { useInvestimentos } from '../estado/investimentos';
@@ -128,27 +129,70 @@ describe('rachar', () => {
     expect(screen.getByRole('checkbox', { name: 'Diego' })).toBeChecked();
   });
 
-  it('cobra sem Pix e, depois de cadastrar a chave, cobra com o copia e cola', async () => {
+  it('a cobrança mostra QR Code, copia e cola e as formas de pagamento, e dá baixa de tudo', async () => {
     const compartilhar = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined });
+    const copiar = jest.requireMock('expo-clipboard').setStringAsync as jest.Mock;
     await render(<App />);
     await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
-
     await fireEvent.press(screen.getByRole('button', { name: /^Cobrar Carla/ }));
+    expect(screen.getByText('Cobrar Carla')).toBeTruthy();
+
+    // Sem chave Pix: sem QR, e a mensagem pede o Pix do jeito de sempre.
+    expect(screen.queryByLabelText(/^QR Code Pix/)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Enviar cobrança' }));
     expect(compartilhar).toHaveBeenLastCalledWith({ message: expect.stringContaining('Me manda por Pix') });
 
+    // Cadastra a chave sem sair da cobrança.
     await fireEvent.press(screen.getByRole('button', { name: 'Cadastrar chave Pix' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+    expect(screen.getByText(/Escreva seu nome/)).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('Chave Pix'), 'nada');
+    await fireEvent.changeText(screen.getByLabelText('Seu nome'), 'Mauro');
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
     expect(screen.getByText(/Não reconheci essa chave/)).toBeTruthy();
     await fireEvent.changeText(screen.getByLabelText('Chave Pix'), '(11) 98765-4321');
-    await fireEvent.changeText(screen.getByLabelText('Seu nome'), 'Mauro');
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
 
-    await fireEvent.press(screen.getByRole('button', { name: /^Cobrar Carla/ }));
+    // De volta à cobrança: QR Code com o valor, copia e cola e chave na mensagem.
+    expect(screen.getByLabelText('QR Code Pix de R$ 120,00')).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Transferência' })).toBeDisabled();
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Dinheiro' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Enviar cobrança' }));
     const mensagem = (compartilhar.mock.calls.at(-1)![0] as { message: string }).message;
     expect(mensagem).toContain('Oi, Carla!');
-    expect(mensagem).toContain('Pix copia e cola:\n000201');
-    expect(mensagem).toContain('5406120.00'); // o valor exato que a Carla deve
+    expect(mensagem).toContain('Como pagar (escolha uma):');
+    // Copia e cola e QR Code vão como links para a página do Pix, com o código depois do #.
+    const links = [...mensagem.matchAll(/#(copiar|qr)=([A-Za-z0-9_-]+)/g)];
+    expect(links.map((l) => l[1])).toEqual(['copiar', 'qr']);
+    const codigo = deBase64url(links[0][2]);
+    expect(codigo).toMatch(/^000201/);
+    expect(codigo).toContain('5406120.00'); // o valor exato que a Carla deve
+    expect(deBase64url(links[1][2])).toBe(codigo);
+    expect(mensagem).toContain('1) Pix copia e cola (toque no link');
+    expect(mensagem).toContain('2) Chave Pix (celular): +5511987654321');
+    expect(mensagem).toContain('3) QR Code (para ler com o app do banco):');
+    expect(mensagem).toContain('4) Dinheiro');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Copiar código Pix' }));
+    expect(copiar).toHaveBeenLastCalledWith(expect.stringMatching(/^000201.*5406120.00/));
+    expect(screen.getByText('Código Pix copiado.')).toBeTruthy();
+
+    // Já recebi tudo: a Carla sai da lista de quem deve.
+    await fireEvent.press(screen.getByRole('button', { name: 'Já recebi tudo de Carla' }));
+    expect(screen.queryByRole('button', { name: /^Cobrar Carla/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Cobrar Bruno/ })).toBeTruthy();
     compartilhar.mockRestore();
+  });
+
+  it('cobrar pelo racha leva só o que é daquele racha', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Churrascaria Brasa Viva/ }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Cobrar Bruno' }));
+    // O Bruno deve R$ 142,45 no total, mas neste racha só R$ 120,00.
+    expect(screen.getAllByText('R$ 120,00')).toHaveLength(2); // o total e o único item
+    expect(screen.queryByText('R$ 142,45')).toBeNull();
+    expect(screen.queryByText(/Netflix/)).toBeNull();
   });
 });
 

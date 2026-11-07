@@ -11,7 +11,6 @@ import { Voltar } from '../componentes/Voltar';
 import { dataCurta, dataLonga } from '../dominio/datas';
 import { dinheiro } from '../dominio/formato';
 import { cobrancasDoRacha, dividir, type Cota } from '../dominio/racha';
-import { cobrar } from '../estado/cobrar';
 import { ASSINATURAS } from '../estado/extrato';
 import { useNavegacao } from '../estado/navegacao';
 import { useRachas } from '../estado/rachas';
@@ -21,6 +20,7 @@ import { ALVO_MINIMO, cor, espaco } from '../tema/tokens';
 function LinhaCota({ cota, nome }: { cota: Cota; nome: string }) {
   const alternarPago = useRachas((s) => s.alternarPago);
   const pessoa = useRachas((s) => s.pessoas.find((p) => p.id === cota.pessoaId));
+  const ir = useNavegacao((s) => s.ir);
   return (
     <View style={estilos.linha}>
       <View style={estilos.meio}>
@@ -34,7 +34,13 @@ function LinhaCota({ cota, nome }: { cota: Cota; nome: string }) {
       ) : (
         <View style={estilos.botoes}>
           {pessoa && (
-            <Botao compacto variante="link" rotulo="Cobrar" nomeAcessivel={`Cobrar ${nome}`} aoTocar={() => cobrar(pessoa, [cota])} />
+            <Botao
+              compacto
+              variante="link"
+              rotulo="Cobrar"
+              nomeAcessivel={`Cobrar ${nome}`}
+              aoTocar={() => ir({ nome: 'cobranca', pessoaId: pessoa.id, rachaId: cota.rachaId })}
+            />
           )}
           <Botao compacto rotulo="Recebi" nomeAcessivel={`Recebi de ${nome}`} aoTocar={() => alternarPago(cota.chave)} />
         </View>

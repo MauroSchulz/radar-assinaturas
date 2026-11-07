@@ -4,15 +4,16 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { PESSOAS_DA_DEMO, rachasDeDemonstracao } from '../dados/demoRachas';
 import { hoje, type DataISO } from '../dominio/datas';
 import type { DadosPix } from '../dominio/pix';
-import type { Pessoa, Racha } from '../dominio/racha';
+import type { DadosTransferencia, FormaDePagamento, Pessoa, Racha } from '../dominio/racha';
 import { ASSINATURAS, EXTRATO } from './extrato';
 
 /**
- * Rachas, amigos, quem pagou e a sua chave Pix. Fica salvo no aparelho.
+ * Rachas, amigos, quem pagou e como você recebe (Pix, transferência, formas escolhidas).
+ * Fica salvo no aparelho.
  *
  * Os rachas e pagamentos guardam datas do extrato de demonstração, que anda junto com
  * "hoje". Por isso, quando o dia muda, eles voltam para a demonstração do dia; amigos e
- * chave Pix são seus e ficam. Com extrato de verdade, essa regra sai.
+ * como você recebe são seus e ficam. Com extrato de verdade, essa regra sai.
  */
 interface EstadoRachas {
   dia: DataISO;
@@ -20,12 +21,20 @@ interface EstadoRachas {
   rachas: Racha[];
   pagamentos: Record<string, DataISO>;
   pix: DadosPix;
+  /** Para quem prefere pagar por transferência (vazio = não oferece). */
+  transferencia: DadosTransferencia;
+  /** As formas de pagamento que vão na mensagem de cobrança; a última escolha fica salva. */
+  formas: FormaDePagamento[];
   adicionarPessoa: (nome: string) => Pessoa;
   criarRacha: (racha: Omit<Racha, 'id' | 'criadoEm'>) => string;
   apagarRacha: (id: string) => void;
   /** Marca como pago hoje, ou desfaz se já estava pago. */
   alternarPago: (chaveDaCota: string) => void;
   salvarPix: (pix: DadosPix) => void;
+  salvarTransferencia: (dados: DadosTransferencia) => void;
+  alternarForma: (forma: FormaDePagamento) => void;
+  /** Dá baixa de uma vez (“já recebi tudo”). Ao contrário de `alternarPago`, nunca desfaz. */
+  marcarRecebido: (chavesDasCotas: string[]) => void;
 }
 
 function novoId(prefixo: string): string {
@@ -42,6 +51,8 @@ export const useRachas = create<EstadoRachas>()(
       ...demoDoDia(),
       pessoas: PESSOAS_DA_DEMO,
       pix: { chave: '', nome: '', cidade: '' },
+      transferencia: { banco: '', agencia: '', conta: '' },
+      formas: ['pixCopiaECola', 'chavePix', 'qrCode'],
       adicionarPessoa: (nome) => {
         const limpo = nome.trim();
         const existente = get().pessoas.find((p) => p.nome.toLowerCase() === limpo.toLowerCase());
@@ -68,16 +79,48 @@ export const useRachas = create<EstadoRachas>()(
           return { pagamentos };
         }),
       salvarPix: (pix) => set({ pix }),
+      salvarTransferencia: (transferencia) => set({ transferencia }),
+      alternarForma: (forma) =>
+        set((s) => ({ formas: s.formas.includes(forma) ? s.formas.filter((f) => f !== forma) : [...s.formas, forma] })),
+      marcarRecebido: (chaves) =>
+        set((s) => {
+          const pagamentos = { ...s.pagamentos };
+          for (const chave of chaves) pagamentos[chave] ??= hoje();
+          return { pagamentos };
+        }),
     }),
     {
       name: 'radar.rachas.v1',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ dia: s.dia, pessoas: s.pessoas, rachas: s.rachas, pagamentos: s.pagamentos, pix: s.pix }),
+      // Versão 2: entrou a forma "QR Code". Quem já mandava o copia e cola passa a mandar o QR também.
+      version: 2,
+      migrate: (salvo, versao) => {
+        const s = salvo as Partial<EstadoRachas> | undefined;
+        if (s?.formas && versao < 2 && s.formas.includes('pixCopiaECola') && !s.formas.includes('qrCode')) {
+          return { ...s, formas: [...s.formas, 'qrCode'] } as EstadoRachas;
+        }
+        return salvo as EstadoRachas;
+      },
+      partialize: (s) => ({
+        dia: s.dia,
+        pessoas: s.pessoas,
+        rachas: s.rachas,
+        pagamentos: s.pagamentos,
+        pix: s.pix,
+        transferencia: s.transferencia,
+        formas: s.formas,
+      }),
       merge: (salvo, atual) => {
         const s = salvo as Partial<EstadoRachas> | undefined;
         if (!s) return atual;
         const pessoas = [...PESSOAS_DA_DEMO, ...(s.pessoas ?? []).filter((p) => !PESSOAS_DA_DEMO.some((d) => d.id === p.id))];
-        const base = { ...atual, pessoas, pix: s.pix ?? atual.pix };
+        const base = {
+          ...atual,
+          pessoas,
+          pix: s.pix ?? atual.pix,
+          transferencia: s.transferencia ?? atual.transferencia,
+          formas: s.formas ?? atual.formas,
+        };
         // Outro dia: rachas e pagamentos da demonstração recomeçam (ver comentário acima).
         if (s.dia !== hoje()) return base;
         return { ...base, rachas: s.rachas ?? atual.rachas, pagamentos: s.pagamentos ?? atual.pagamentos };
