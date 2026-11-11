@@ -1,4 +1,5 @@
 import { Appearance, type TextStyle } from 'react-native';
+import { esquemaDe, preferenciaDeTema } from './preferencia';
 import type { Categoria } from '../dominio/tipos';
 
 /**
@@ -91,8 +92,8 @@ export const ESCURO: Paleta = {
   qrModulo: '#000000',
 };
 
-/** O tema do celular na hora em que o app abriu. */
-export const ESQUEMA: 'claro' | 'escuro' = Appearance.getColorScheme() === 'dark' ? 'escuro' : 'claro';
+/** O tema na hora em que o app abriu: o escolhido no perfil, ou o do celular. */
+export const ESQUEMA: 'claro' | 'escuro' = esquemaDe(preferenciaDeTema(), Appearance.getColorScheme());
 
 export const cor: Paleta = ESQUEMA === 'escuro' ? ESCURO : CLARO;
 

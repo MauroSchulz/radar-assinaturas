@@ -98,6 +98,17 @@ mostra o total, quantas compras, quanto foi assinatura e quanto ficou acima ou a
 O mês de hoje conta só até hoje e fica fora da média; os que ainda não chegaram ficam sem coluna.
 Regra em [`src/dominio/gastos.ts`](src/dominio/gastos.ts).
 
+## Categorias, tema e acabamento
+
+- **Para onde vai o dinheiro** (aba Assinaturas): barras horizontais por categoria, da mais cara para
+  a mais barata, com valor, porcentagem e os nomes ([`src/dominio/categorias.ts`](src/dominio/categorias.ts)).
+- **Tema** (no perfil): seguir o celular, claro ou escuro. As cores são calculadas quando o app abre,
+  então a escolha é lida antes de carregar o app ([`index.ts`](index.ts), [`src/tema/preferencia.ts`](src/tema/preferencia.ts))
+  e trocar de tema reinicia o app.
+- **Movimento e vibração**: as telas entram deslizando (e só aparecem, sem deslizar, para quem pediu
+  menos movimento no celular); vibração leve ao escolher e de "deu certo" ao confirmar um Pix
+  (`expo-haptics`, só no celular).
+
 ## Calendário, boas-vindas e recomeçar
 
 - **Calendário de cobranças**: o mês em grade, com um ponto em cada dia que tem cobrança (já cobrada,

@@ -15,6 +15,7 @@ import { FORMAS_DE_PAGAMENTO, type FormaDePagamento } from '../dominio/racha';
 import { useCobranca } from '../estado/cobrar';
 import { useNavegacao } from '../estado/navegacao';
 import { useRachas } from '../estado/rachas';
+import { vibrarSucesso } from '../servicos/vibracao';
 import { ALVO_MINIMO, cor, espaco, raio } from '../tema/tokens';
 
 const NOME_DA_FORMA: Record<FormaDePagamento, string> = {
@@ -169,6 +170,7 @@ export function Cobranca({ pessoaId, rachaId }: { pessoaId: string; rachaId?: st
                 rotulo={`Já recebi tudo de ${nome}`}
                 aoTocar={() => {
                   marcarRecebido(c.pendentes.map((p) => p.chave));
+                  vibrarSucesso();
                   voltar();
                 }}
               />

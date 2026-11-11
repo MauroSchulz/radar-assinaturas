@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet } from 'react-native';
 import { ALVO_MINIMO, cor, espaco, raio } from '../tema/tokens';
+import { vibrarEscolha } from '../servicos/vibracao';
 import { Texto } from './Texto';
 
 interface Props {
@@ -17,7 +18,10 @@ interface Props {
 export function Ficha({ rotulo, marcada, aoTocar, papel = 'checkbox', desabilitada }: Props) {
   return (
     <Pressable
-      onPress={aoTocar}
+      onPress={() => {
+        vibrarEscolha();
+        aoTocar();
+      }}
       disabled={desabilitada}
       accessibilityRole={papel}
       accessibilityState={{ checked: marcada, disabled: desabilitada }}

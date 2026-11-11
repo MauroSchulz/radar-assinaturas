@@ -14,6 +14,7 @@ import { dividirPor, erroDaDivisao, VOCE, type Divisao, type ModoDeDivisao, type
 import { ASSINATURAS } from '../estado/extrato';
 import { useNavegacao } from '../estado/navegacao';
 import { useRachas } from '../estado/rachas';
+import { vibrarSucesso } from '../servicos/vibracao';
 import { ALVO_MINIMO, cor, espaco, raio, tipo } from '../tema/tokens';
 
 const NOME_DO_MODO: Record<ModoDeDivisao, string> = { igual: 'Igual', valor: 'Por valor', partes: 'Por partes' };
@@ -80,6 +81,7 @@ export function MontarRacha({ titulo, origem, pagouId }: { titulo: string; orige
       ...(modo !== 'igual' ? { divisao } : {}),
       ...(pagouId ? { pagouId } : {}),
     });
+    vibrarSucesso();
     concluir('rachar', [{ nome: 'racha', id }]);
   };
 

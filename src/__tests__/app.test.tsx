@@ -706,3 +706,50 @@ describe('racha: divisão, alguém pagou e cobrar todos', () => {
     expect(screen.getAllByText(/te deve R\$/).length).toBeGreaterThan(0);
   });
 });
+
+describe('tema, categorias e vibração', () => {
+  beforeEach(() => {
+    useNavegacao.setState({ aba: 'inicio', pilha: [] });
+    useLoja.getState().recomecar();
+    useRachas.setState(RACHAS_INICIAL, true);
+    useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
+    useAvisos.getState().recomecar();
+    usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
+  });
+
+  it('a aba Assinaturas mostra para onde vai o dinheiro, por categoria', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'Assinaturas' }));
+    expect(screen.getByText('Para onde vai o dinheiro')).toBeTruthy();
+    expect(screen.getByLabelText(/^Vídeo: R\$.+ por mês, \d+% do total\. .*Netflix/)).toBeTruthy();
+  });
+
+  it('escolher o tema salva no aparelho', async () => {
+    const AsyncStorage = jest.requireMock('@react-native-async-storage/async-storage');
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Abrir perfil' }));
+    expect(screen.getByRole('radio', { name: 'Seguir o celular' })).toBeChecked();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Escuro' }));
+    expect(await AsyncStorage.getItem('radar.tema')).toBe('escuro');
+    expect(screen.getByRole('radio', { name: 'Escuro' })).toBeChecked();
+    await AsyncStorage.removeItem('radar.tema');
+  });
+
+  it('vibra ao escolher e ao confirmar um Pix', async () => {
+    const haptics = jest.requireMock('expo-haptics') as Record<string, jest.Mock>;
+    haptics.selectionAsync.mockClear();
+    haptics.notificationAsync.mockClear();
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    expect(haptics.selectionAsync).toHaveBeenCalled();
+    await fireEvent.press(screen.getByRole('tab', { name: 'Início' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Pix' }));
+    await fireEvent.changeText(screen.getByLabelText('Chave Pix'), '(11) 98765-4321');
+    await fireEvent.changeText(screen.getByLabelText('Valor'), '10');
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Confirmar e enviar/ }));
+    expect(haptics.notificationAsync).toHaveBeenCalledWith('success');
+  });
+});

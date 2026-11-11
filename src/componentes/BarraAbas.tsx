@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavegacao, type Aba } from '../estado/navegacao';
 import { useAlertas } from '../estado/radar';
 import { cor, espaco, raio } from '../tema/tokens';
+import { vibrarEscolha } from '../servicos/vibracao';
 import { Texto } from './Texto';
 
 type Icone = ComponentProps<typeof Ionicons>['name'];
@@ -52,7 +53,10 @@ export function BarraAbas() {
           return (
             <Pressable
               key={aba}
-              onPress={() => trocarAba(aba)}
+              onPress={() => {
+                vibrarEscolha();
+                trocarAba(aba);
+              }}
               accessibilityRole="tab"
               accessibilityState={{ selected: ativa }}
               accessibilityLabel={contagem ? `${rotulo}, ${contagem} novos` : rotulo}

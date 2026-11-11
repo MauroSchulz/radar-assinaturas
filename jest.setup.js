@@ -18,5 +18,11 @@ jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(async () => ({ canceled: false, assets: [{ uri: 'file:///galeria/foto.jpg' }] })),
 }));
 
+jest.mock('expo-haptics', () => ({
+  selectionAsync: jest.fn(async () => undefined),
+  notificationAsync: jest.fn(async () => undefined),
+  NotificationFeedbackType: { Success: 'success' },
+}));
+
 // Sem o mock, o SafeAreaProvider não desenha nada no teste (espera medir a tela).
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);

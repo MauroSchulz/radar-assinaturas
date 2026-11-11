@@ -1,10 +1,12 @@
 import { View } from 'react-native';
+import { BarrasCategoria } from '../componentes/BarrasCategoria';
 import { Botao } from '../componentes/Botao';
 import { Secao } from '../componentes/Cartao';
 import { LinhaAssinatura } from '../componentes/LinhaAssinatura';
 import { Lista } from '../componentes/Lista';
 import { Tela } from '../componentes/Tela';
 import { Texto } from '../componentes/Texto';
+import { gastosPorCategoria } from '../dominio/categorias';
 import { dinheiro } from '../dominio/formato';
 import type { Assinatura, Situacao } from '../dominio/tipos';
 import { useLoja } from '../estado/loja';
@@ -33,6 +35,12 @@ export function Assinaturas() {
       <View style={{ marginTop: espaco.m }}>
         <Botao icone="calendar-outline" rotulo="Calendário de cobranças" aoTocar={() => ir({ nome: 'calendario' })} />
       </View>
+      <Secao titulo="Para onde vai o dinheiro">
+        <Texto variante="apoio" cor={cor.textoSuave}>
+          {`As ativas, por categoria: ${dinheiro(resumo.totalMensal)} por mês.`}
+        </Texto>
+        <BarrasCategoria categorias={gastosPorCategoria(assinaturas)} />
+      </Secao>
       {GRUPOS.map(({ situacao, titulo }) => {
         const doGrupo: Assinatura[] = assinaturas.filter((a) => a.situacao === situacao);
         if (doGrupo.length === 0) return null;

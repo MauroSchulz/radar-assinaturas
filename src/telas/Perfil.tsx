@@ -1,9 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useState, type ComponentProps } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { DevSettings, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Botao } from '../componentes/Botao';
 import { CampoTexto } from '../componentes/CampoTexto';
+import { Ficha } from '../componentes/Ficha';
 import { Cartao, Secao } from '../componentes/Cartao';
 import { FotoPerfil } from '../componentes/FotoPerfil';
 import { Lista } from '../componentes/Lista';
@@ -15,9 +17,26 @@ import { useNavegacao, type Rota } from '../estado/navegacao';
 import { usePerfil } from '../estado/perfil';
 import { useRachas } from '../estado/rachas';
 import { recomecarDemonstracao } from '../estado/recomecar';
+import { CHAVE_DO_TEMA, preferenciaDeTema, type PreferenciaDeTema } from '../tema/preferencia';
 import { ALVO_MINIMO, cor, espaco } from '../tema/tokens';
 
 type Icone = ComponentProps<typeof Ionicons>['name'];
+
+const OPCOES_DE_TEMA: { valor: PreferenciaDeTema; rotulo: string }[] = [
+  { valor: 'sistema', rotulo: 'Seguir o celular' },
+  { valor: 'claro', rotulo: 'Claro' },
+  { valor: 'escuro', rotulo: 'Escuro' },
+];
+
+/** Recarrega o app para as cores novas entrarem (elas são calculadas quando o app abre). */
+function recarregar(): void {
+  try {
+    if (Platform.OS === 'web') globalThis.location?.reload();
+    else DevSettings.reload();
+  } catch {
+    // Sem como recarregar (ex.: nos testes): a cor nova entra na próxima vez que abrir.
+  }
+}
 
 function LinhaAjuste({ icone, titulo, detalhe, rota }: { icone: Icone; titulo: string; detalhe: string; rota: Rota }) {
   const ir = useNavegacao((s) => s.ir);
@@ -57,6 +76,15 @@ export function Perfil() {
   const [rascunho, setRascunho] = useState(nome);
   const [aviso, setAviso] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
+  const [tema, setTema] = useState<PreferenciaDeTema>(preferenciaDeTema());
+
+  const escolherTema = async (valor: PreferenciaDeTema) => {
+    if (valor === tema) return;
+    setTema(valor);
+    await AsyncStorage.setItem(CHAVE_DO_TEMA, valor);
+    setAviso('Trocando as cores…');
+    recarregar();
+  };
   const mudouNome = rascunho.trim() !== nome && rascunho.trim() !== '';
 
   const escolherFoto = async () => {
@@ -128,6 +156,17 @@ export function Perfil() {
         </Lista>
       </Secao>
 
+      <Secao titulo="Aparência">
+        <View style={estilos.fichas} accessibilityRole="radiogroup">
+          {OPCOES_DE_TEMA.map((o) => (
+            <Ficha key={o.valor} papel="radio" rotulo={o.rotulo} marcada={tema === o.valor} aoTocar={() => escolherTema(o.valor)} />
+          ))}
+        </View>
+        <Texto variante="apoio" cor={cor.textoSuave} style={estilos.notaTema}>
+          O app reinicia rapidinho para trocar as cores.
+        </Texto>
+      </Secao>
+
       <Secao titulo="Demonstração">
         {confirmando ? (
           <Cartao destaque style={estilos.confirmar}>
@@ -174,6 +213,8 @@ const estilos = StyleSheet.create({
   icone: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: cor.destaqueSuave },
   meio: { flex: 1, gap: 2 },
   rodape: { marginTop: espaco.xl, textAlign: 'center' },
+  fichas: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.s },
+  notaTema: { marginTop: espaco.s },
   confirmar: { gap: espaco.m, marginTop: espaco.s },
   botoesConfirmar: { gap: espaco.s },
 });

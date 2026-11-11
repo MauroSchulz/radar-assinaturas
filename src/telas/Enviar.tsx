@@ -25,6 +25,7 @@ import { NOME_DO_TIPO_DE_CHAVE, normalizarChave } from '../dominio/pix';
 import { useConta, useFatura, useSaldoConta } from '../estado/conta';
 import { useNavegacao } from '../estado/navegacao';
 import { useRachas } from '../estado/rachas';
+import { vibrarSucesso } from '../servicos/vibracao';
 import { cor, espaco, raio } from '../tema/tokens';
 
 const DICA_DO_MODO: Record<TipoEnvio, string> = {
@@ -108,6 +109,7 @@ export function Enviar({
       ...(sim ? { credito: { parcelas: sim.parcelas, parcela: sim.parcela, total: sim.total, juros: sim.juros } } : {}),
     };
     const id = enviar(envio);
+    vibrarSucesso();
     // Pagou o que devia no racha: fica acertado.
     if (quitar?.length) useRachas.getState().marcarRecebido(quitar);
     concluir('inicio', [{ nome: 'comprovante', id }]);

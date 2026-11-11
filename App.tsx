@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BarraAbas } from './src/componentes/BarraAbas';
+import { Entrada } from './src/componentes/Entrada';
 import { useAvisos, useLembretes } from './src/estado/avisos';
 import { useNavegacao, type Aba, type Rota } from './src/estado/navegacao';
 import { usePerfil } from './src/estado/perfil';
@@ -106,10 +107,19 @@ function Conteudo() {
 
   if (topo) {
     // A chave remonta a tela ao trocar de rota: rascunho de uma não vaza para a outra.
-    return <TelaDaRota key={`${pilha.length}-${topo.nome}`} rota={topo} />;
+    return (
+      <Entrada key={`${pilha.length}-${topo.nome}`}>
+        <TelaDaRota rota={topo} />
+      </Entrada>
+    );
   }
   const Raiz = RAIZ[aba];
-  return <Raiz />;
+  // Entre abas, só aparece (sem deslizar): é troca de lugar, não um passo para dentro.
+  return (
+    <Entrada key={aba} deslizar={false}>
+      <Raiz />
+    </Entrada>
+  );
 }
 
 /**

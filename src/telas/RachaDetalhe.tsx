@@ -15,6 +15,7 @@ import { ASSINATURAS } from '../estado/extrato';
 import { useNavegacao } from '../estado/navegacao';
 import { useRachas } from '../estado/rachas';
 import { useCotas, useRacha } from '../estado/radar';
+import { vibrarSucesso } from '../servicos/vibracao';
 import { ALVO_MINIMO, cor, espaco } from '../tema/tokens';
 
 /** A parte de um amigo (te deve) ou a sua (você deve a quem pagou). */
@@ -55,7 +56,15 @@ function LinhaCota({ cota, nome }: { cota: Cota; nome: string }) {
             nomeAcessivel={`Cobrar ${nome}`}
             aoTocar={() => ir({ nome: 'cobranca', pessoaId: cota.pessoaId, rachaId: cota.rachaId })}
           />
-          <Botao compacto rotulo="Recebi" nomeAcessivel={`Recebi de ${nome}`} aoTocar={() => alternarPago(cota.chave)} />
+          <Botao
+            compacto
+            rotulo="Recebi"
+            nomeAcessivel={`Recebi de ${nome}`}
+            aoTocar={() => {
+              alternarPago(cota.chave);
+              vibrarSucesso();
+            }}
+          />
         </View>
       )}
     </View>

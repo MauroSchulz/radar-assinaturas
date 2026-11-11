@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Share, StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Share, StyleSheet, View } from 'react-native';
 import { Botao } from '../componentes/Botao';
 import { LinhaDado } from '../componentes/LinhaDado';
 import { Tela } from '../componentes/Tela';
@@ -39,14 +40,19 @@ export function textoDoComprovante(e: Envio): string {
 export function Comprovante({ id }: { id: string }) {
   const envio = useConta((s) => s.envios.find((e) => e.id === id));
   const trocarAba = useNavegacao((s) => s.trocarAba);
+  // O "check" cresce com uma mola, como confirmação de que deu certo.
+  const escala = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    Animated.spring(escala, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
+  }, [escala]);
   if (!envio) return null;
 
   return (
     <Tela topo={<Voltar />}>
       <View style={estilos.topo}>
-        <View style={estilos.selo} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Animated.View style={[estilos.selo, { transform: [{ scale: escala }] }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Ionicons name="checkmark" size={36} color={cor.destaqueTexto} />
-        </View>
+        </Animated.View>
         <Texto variante="subtitulo" accessibilityRole="header">
           {TITULO[envio.tipo]}
         </Texto>
