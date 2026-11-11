@@ -76,6 +76,16 @@ export function diaDaSemana(data: DataISO): string {
   return DIAS_DA_SEMANA[deISO(data).getUTCDay()];
 }
 
+/** 0 para domingo até 6 para sábado. */
+export function numeroDoDiaDaSemana(data: DataISO): number {
+  return deISO(data).getUTCDay();
+}
+
+/** Quantos dias tem o mês (`mes` de 1 a 12). */
+export function diasNoMes(ano: number, mes: number): number {
+  return new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+}
+
 /** Um dia do mês (1 a 31) na data `AAAA-MM-DD`, ajustado para o último dia se o mês for curto. */
 export function noDia(ano: number, mes: number, dia: number): DataISO {
   const ultimo = new Date(Date.UTC(ano, mes, 0)).getUTCDate();

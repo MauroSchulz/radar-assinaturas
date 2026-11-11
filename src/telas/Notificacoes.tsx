@@ -22,6 +22,7 @@ export function Notificacoes() {
   const ativados = useAvisos((s) => s.ativados);
   const cobranca = useAvisos((s) => s.cobranca);
   const teste = useAvisos((s) => s.teste);
+  const racha = useAvisos((s) => s.racha);
   const ativar = useAvisos((s) => s.ativar);
   const alternar = useAvisos((s) => s.alternar);
   const lembretes = useLembretes();
@@ -79,6 +80,13 @@ export function Notificacoes() {
           aoMudar={() => alternar('teste')}
           desabilitado={!ativados}
         />
+        <LinhaInterruptor
+          titulo="Lembrar de cobrar quem te deve"
+          descricao="Uma semana depois, se ainda não pagou"
+          ligado={racha !== false}
+          aoMudar={() => alternar('racha')}
+          desabilitado={!ativados}
+        />
       </View>
 
       {mensagem && (
@@ -102,7 +110,11 @@ export function Notificacoes() {
           <Lista>
             {lembretes.slice(0, PROXIMOS_NA_TELA).map((l) => (
               <View key={l.id} style={estilos.lembrete} accessible accessibilityLabel={`${quando(l.data)}, ${l.titulo}`}>
-                <Ionicons name={l.id.startsWith('teste') ? 'hourglass-outline' : 'calendar-outline'} size={20} color={cor.destaqueTexto} />
+                <Ionicons
+                  name={l.id.startsWith('teste') ? 'hourglass-outline' : l.id.startsWith('racha') ? 'people-outline' : 'calendar-outline'}
+                  size={20}
+                  color={cor.destaqueTexto}
+                />
                 <View style={estilos.flex}>
                   <Texto variante="corpoForte" numberOfLines={2}>
                     {l.titulo}

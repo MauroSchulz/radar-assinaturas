@@ -35,6 +35,11 @@ interface EstadoRachas {
   alternarForma: (forma: FormaDePagamento) => void;
   /** Dá baixa de uma vez (“já recebi tudo”). Ao contrário de `alternarPago`, nunca desfaz. */
   marcarRecebido: (chavesDasCotas: string[]) => void;
+  /** Volta para a demonstração do dia: rachas, pagamentos, amigos e como você recebe. */
+  recomecar: () => void;
+  /** Quando você mandou a última cobrança para cada amigo (por id). */
+  cobradoEm: Record<string, DataISO>;
+  registrarCobranca: (pessoaId: string) => void;
 }
 
 function novoId(prefixo: string): string {
@@ -42,17 +47,25 @@ function novoId(prefixo: string): string {
 }
 
 function demoDoDia() {
-  return { dia: hoje(), ...rachasDeDemonstracao(EXTRATO, ASSINATURAS, hoje()) };
+  return { dia: hoje(), cobradoEm: {} as Record<string, DataISO>, ...rachasDeDemonstracao(EXTRATO, ASSINATURAS, hoje()) };
+}
+
+function inicial() {
+  return {
+    ...demoDoDia(),
+    pessoas: PESSOAS_DA_DEMO,
+    pix: { chave: '', nome: '', cidade: '' },
+    transferencia: { banco: '', agencia: '', conta: '' },
+    formas: ['pixCopiaECola', 'chavePix', 'qrCode'] as FormaDePagamento[],
+  };
 }
 
 export const useRachas = create<EstadoRachas>()(
   persist(
     (set, get) => ({
-      ...demoDoDia(),
-      pessoas: PESSOAS_DA_DEMO,
-      pix: { chave: '', nome: '', cidade: '' },
-      transferencia: { banco: '', agencia: '', conta: '' },
-      formas: ['pixCopiaECola', 'chavePix', 'qrCode'],
+      ...inicial(),
+      recomecar: () => set(inicial()),
+      registrarCobranca: (pessoaId) => set((s) => ({ cobradoEm: { ...s.cobradoEm, [pessoaId]: hoje() } })),
       adicionarPessoa: (nome) => {
         const limpo = nome.trim();
         const existente = get().pessoas.find((p) => p.nome.toLowerCase() === limpo.toLowerCase());
@@ -95,14 +108,15 @@ export const useRachas = create<EstadoRachas>()(
       // Versão 2: entrou a forma "QR Code". Quem já mandava o copia e cola passa a mandar o QR também.
       // Versão 3: a demonstração ganhou a Júlia e a pizza; os rachas salvos voltam para a demonstração
       // nova (apagando o `dia`, o `merge` trata como outro dia). Amigos e como você recebe ficam.
-      version: 3,
+      // Versão 4: entrou o cinema que a Ana pagou (você deve a ela); a demonstração recomeça de novo.
+      version: 4,
       migrate: (salvo, versao) => {
         let s = salvo as Partial<EstadoRachas> | undefined;
         if (!s) return salvo as EstadoRachas;
         if (s.formas && versao < 2 && s.formas.includes('pixCopiaECola') && !s.formas.includes('qrCode')) {
           s = { ...s, formas: [...s.formas, 'qrCode'] };
         }
-        if (versao < 3) s = { ...s, dia: '' };
+        if (versao < 4) s = { ...s, dia: '' };
         return s as EstadoRachas;
       },
       partialize: (s) => ({
@@ -110,6 +124,7 @@ export const useRachas = create<EstadoRachas>()(
         pessoas: s.pessoas,
         rachas: s.rachas,
         pagamentos: s.pagamentos,
+        cobradoEm: s.cobradoEm,
         pix: s.pix,
         transferencia: s.transferencia,
         formas: s.formas,
@@ -127,7 +142,7 @@ export const useRachas = create<EstadoRachas>()(
         };
         // Outro dia: rachas e pagamentos da demonstração recomeçam (ver comentário acima).
         if (s.dia !== hoje()) return base;
-        return { ...base, rachas: s.rachas ?? atual.rachas, pagamentos: s.pagamentos ?? atual.pagamentos };
+        return { ...base, rachas: s.rachas ?? atual.rachas, pagamentos: s.pagamentos ?? atual.pagamentos, cobradoEm: s.cobradoEm ?? {} };
       },
     },
   ),

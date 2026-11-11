@@ -1,6 +1,7 @@
 /**
  * Rachas de demonstração: o churrasco de ontem dividido em quatro, a pizza de quatro dias
- * atrás dividida em três (a Júlia ainda não pagou) e a Netflix dividida com o Bruno há três meses. Como o extrato de demonstração anda junto com "hoje", estes
+ * atrás dividida em três (a Júlia ainda não pagou), o cinema que a Ana pagou (você deve a sua parte)
+ * e a Netflix dividida com o Bruno há três meses. Como o extrato de demonstração anda junto com "hoje", estes
  * dados são refeitos a cada dia (ver `estado/rachas.ts`).
  */
 import { somarDias, type DataISO } from '../dominio/datas';
@@ -48,6 +49,18 @@ export function rachasDeDemonstracao(
     });
     pagamentos[chaveDaCota('demo-pizza', 'ana', pizza.data)] = somarDias(pizza.data, 1); // a Ana pagou no dia seguinte
   }
+
+  // O cinema de anteontem a Ana pagou: aqui é você quem deve a sua parte a ela.
+  const dataCinema = somarDias(dataHoje, -2);
+  rachas.push({
+    id: 'demo-cinema',
+    titulo: 'Cinema',
+    criadoEm: dataCinema,
+    pessoas: ['ana'],
+    incluiVoce: true,
+    pagouId: 'ana',
+    origem: { tipo: 'manual', descricao: 'Cinema', data: dataCinema, valor: 6400 },
+  });
 
   const netflix = assinaturas.find((a) => a.nome === 'Netflix');
   if (netflix && netflix.cobrancas.length >= 3) {

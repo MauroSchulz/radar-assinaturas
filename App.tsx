@@ -1,10 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BarraAbas } from './src/componentes/BarraAbas';
 import { useAvisos, useLembretes } from './src/estado/avisos';
 import { useNavegacao, type Aba, type Rota } from './src/estado/navegacao';
+import { usePerfil } from './src/estado/perfil';
 import { agendarLembretes, cancelarLembretes, configurarNotificacoes } from './src/servicos/notificacoes';
 import { cor, ESQUEMA } from './src/tema/tokens';
 import { Alertas } from './src/telas/Alertas';
@@ -12,6 +13,8 @@ import { Assinaturas } from './src/telas/Assinaturas';
 import { CaixinhaDetalhe } from './src/telas/CaixinhaDetalhe';
 import { Cobranca } from './src/telas/Cobranca';
 import { Bancos } from './src/telas/Bancos';
+import { BoasVindas } from './src/telas/BoasVindas';
+import { Calendario } from './src/telas/Calendario';
 import { Comprovante } from './src/telas/Comprovante';
 import { ConectarBanco } from './src/telas/ConectarBanco';
 import { Detalhe } from './src/telas/Detalhe';
@@ -21,7 +24,10 @@ import { EscolherCompra } from './src/telas/EscolherCompra';
 import { Fatura } from './src/telas/Fatura';
 import { Inicio } from './src/telas/Inicio';
 import { Investir } from './src/telas/Investir';
+import { CobrarTodos } from './src/telas/CobrarTodos';
 import { MontarRacha } from './src/telas/MontarRacha';
+import { NovaDespesa } from './src/telas/NovaDespesa';
+import { PagarAmigo } from './src/telas/PagarAmigo';
 import { Notificacoes } from './src/telas/Notificacoes';
 import { NovaCaixinha } from './src/telas/NovaCaixinha';
 import { Perfil } from './src/telas/Perfil';
@@ -38,7 +44,13 @@ function TelaDaRota({ rota }: { rota: Rota }) {
     case 'escolherCompra':
       return <EscolherCompra />;
     case 'montarRacha':
-      return <MontarRacha titulo={rota.titulo} origem={rota.origem} />;
+      return <MontarRacha titulo={rota.titulo} origem={rota.origem} pagouId={rota.pagouId} />;
+    case 'novaDespesa':
+      return <NovaDespesa />;
+    case 'pagarAmigo':
+      return <PagarAmigo pessoaId={rota.pessoaId} />;
+    case 'cobrarTodos':
+      return <CobrarTodos />;
     case 'seuPix':
       return <SeuPix />;
     case 'caixinha':
@@ -52,7 +64,7 @@ function TelaDaRota({ rota }: { rota: Rota }) {
     case 'cobranca':
       return <Cobranca pessoaId={rota.pessoaId} rachaId={rota.rachaId} />;
     case 'enviar':
-      return <Enviar modo={rota.modo} />;
+      return <Enviar modo={rota.modo} preenchido={rota.preenchido} quitar={rota.quitar} />;
     case 'comprovante':
       return <Comprovante id={rota.id} />;
     case 'perfil':
@@ -63,6 +75,8 @@ function TelaDaRota({ rota }: { rota: Rota }) {
       return <ConectarBanco bancoId={rota.bancoId} />;
     case 'notificacoes':
       return <Notificacoes />;
+    case 'calendario':
+      return <Calendario />;
   }
 }
 
@@ -120,7 +134,26 @@ function SincronizarAvisos() {
   return null;
 }
 
+/** Se o perfil já foi lido do aparelho: antes disso, não dá para saber se é a primeira abertura. */
+function usePerfilCarregado(): boolean {
+  const [carregado, setCarregado] = useState(() => usePerfil.persist.hasHydrated());
+  useEffect(() => {
+    if (usePerfil.persist.hasHydrated()) setCarregado(true);
+    return usePerfil.persist.onFinishHydration(() => setCarregado(true));
+  }, []);
+  return carregado;
+}
+
 export default function App() {
+  const viuBoasVindas = usePerfil((s) => s.viuBoasVindas);
+  const carregado = usePerfilCarregado();
+  if (carregado && !viuBoasVindas) {
+    return (
+      <SafeAreaProvider>
+        <BoasVindas />
+      </SafeAreaProvider>
+    );
+  }
   return (
     <SafeAreaProvider>
       <SincronizarAvisos />

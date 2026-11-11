@@ -27,10 +27,12 @@ export function LinhaRacha({ racha, cotas, aoTocar }: Props) {
   const nomes = racha.pessoas.map((id) => pessoas.find((p) => p.id === id)?.nome ?? '?');
   const { origem } = racha;
   const assinatura = origem.tipo === 'assinatura' ? ASSINATURAS.find((a) => a.id === origem.assinaturaId) : undefined;
-  const quando = origem.tipo === 'compra' ? dataCurta(origem.data) : 'Todo mês';
+  const quando = origem.tipo === 'assinatura' ? 'Todo mês' : dataCurta(origem.data);
+  const pagador = racha.pagouId ? pessoas.find((p) => p.id === racha.pagouId)?.nome : undefined;
+  const voceDeve = cotas.some((c) => c.direcao === 'voceDeve');
   const pendente = cotas.filter((c) => !c.pagoEm).reduce((s, c) => s + c.valor, 0);
   const pagas = cotas.filter((c) => c.pagoEm).length;
-  const status = pendente > 0 ? `Faltam ${dinheiro(pendente)}` : 'Quitado';
+  const status = pendente > 0 ? (voceDeve ? `Você deve ${dinheiro(pendente)}` : `Faltam ${dinheiro(pendente)}`) : 'Quitado';
   const progresso = `${pagas} de ${cotas.length} ${cotas.length === 1 ? 'parte paga' : 'partes pagas'}`;
   // Valor e "faltam" empilhados à direita: em linha, espremiam o nome do racha. O valor fica na
   // cor do texto, não em vermelho: dinheiro a receber não é problema, é só o que falta voltar.
@@ -48,7 +50,7 @@ export function LinhaRacha({ racha, cotas, aoTocar }: Props) {
           {racha.titulo}
         </Texto>
         <Texto variante="apoio" cor={cor.textoSuave} numberOfLines={2}>
-          {`${quando} · ${comQuem(nomes)}`}
+          {`${quando} · ${pagador ? `${pagador} pagou` : comQuem(nomes)}`}
         </Texto>
         {cotas.length > 0 && (
           <View style={estilos.progresso}>
@@ -66,7 +68,7 @@ export function LinhaRacha({ racha, cotas, aoTocar }: Props) {
           <>
             <Texto variante="valor">{dinheiro(pendente)}</Texto>
             <Texto variante="apoio" cor={cor.textoSuave}>
-              faltam
+              {voceDeve ? 'você deve' : 'faltam'}
             </Texto>
           </>
         ) : (

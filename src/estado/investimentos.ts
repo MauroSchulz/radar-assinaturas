@@ -17,6 +17,8 @@ interface EstadoInvestimentos {
   resgatar: (id: string, valor: number) => void;
   pararDeGuardarTodoMes: (id: string) => void;
   apagar: (id: string) => void;
+  /** Volta para as caixinhas da demonstração. */
+  recomecar: () => void;
 }
 
 function novoId(): string {
@@ -62,6 +64,7 @@ export const useInvestimentos = create<EstadoInvestimentos>()(
           })),
         })),
       apagar: (id) => set((s) => ({ caixinhas: s.caixinhas.filter((c) => c.id !== id) })),
+      recomecar: () => set({ caixinhas: caixinhasDeDemonstracao(hoje()) }),
     }),
     {
       name: 'radar.investimentos.v1',

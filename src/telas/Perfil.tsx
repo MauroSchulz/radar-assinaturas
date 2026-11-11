@@ -4,7 +4,7 @@ import { useState, type ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Botao } from '../componentes/Botao';
 import { CampoTexto } from '../componentes/CampoTexto';
-import { Secao } from '../componentes/Cartao';
+import { Cartao, Secao } from '../componentes/Cartao';
 import { FotoPerfil } from '../componentes/FotoPerfil';
 import { Lista } from '../componentes/Lista';
 import { Tela } from '../componentes/Tela';
@@ -14,6 +14,7 @@ import { useAvisos } from '../estado/avisos';
 import { useNavegacao, type Rota } from '../estado/navegacao';
 import { usePerfil } from '../estado/perfil';
 import { useRachas } from '../estado/rachas';
+import { recomecarDemonstracao } from '../estado/recomecar';
 import { ALVO_MINIMO, cor, espaco } from '../tema/tokens';
 
 type Icone = ComponentProps<typeof Ionicons>['name'];
@@ -55,6 +56,7 @@ export function Perfil() {
   // Rascunho local do nome: só vai para a loja ao salvar.
   const [rascunho, setRascunho] = useState(nome);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
   const mudouNome = rascunho.trim() !== nome && rascunho.trim() !== '';
 
   const escolherFoto = async () => {
@@ -126,6 +128,28 @@ export function Perfil() {
         </Lista>
       </Secao>
 
+      <Secao titulo="Demonstração">
+        {confirmando ? (
+          <Cartao destaque style={estilos.confirmar}>
+            <Texto variante="corpo">
+              Isso apaga o que você fez no app (Pix enviados, rachas, caixinhas, bancos conectados e avisos) e volta tudo
+              para o começo, com as boas-vindas de novo.
+            </Texto>
+            <View style={estilos.botoesConfirmar}>
+              <Botao variante="primario" icone="refresh" rotulo="Sim, recomeçar" aoTocar={() => recomecarDemonstracao()} />
+              <Botao variante="link" rotulo="Cancelar" aoTocar={() => setConfirmando(false)} />
+            </View>
+          </Cartao>
+        ) : (
+          <View style={estilos.campos}>
+            <Texto variante="apoio" cor={cor.textoSuave}>
+              Antes de apresentar, volte o app para como ele estava na primeira vez.
+            </Texto>
+            <Botao icone="refresh" rotulo="Recomeçar demonstração" aoTocar={() => setConfirmando(true)} />
+          </View>
+        )}
+      </Secao>
+
       <Texto variante="apoio" cor={cor.textoSobreFundo} style={estilos.rodape}>
         Dados de demonstração. Tudo fica salvo só neste celular.
       </Texto>
@@ -150,4 +174,6 @@ const estilos = StyleSheet.create({
   icone: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: cor.destaqueSuave },
   meio: { flex: 1, gap: 2 },
   rodape: { marginTop: espaco.xl, textAlign: 'center' },
+  confirmar: { gap: espaco.m, marginTop: espaco.s },
+  botoesConfirmar: { gap: espaco.s },
 });

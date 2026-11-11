@@ -24,6 +24,7 @@ import { dinheiro, lerValor, porcentagem } from '../dominio/formato';
 import { NOME_DO_TIPO_DE_CHAVE, normalizarChave } from '../dominio/pix';
 import { useConta, useFatura, useSaldoConta } from '../estado/conta';
 import { useNavegacao } from '../estado/navegacao';
+import { useRachas } from '../estado/rachas';
 import { cor, espaco, raio } from '../tema/tokens';
 
 const DICA_DO_MODO: Record<TipoEnvio, string> = {
@@ -32,8 +33,24 @@ const DICA_DO_MODO: Record<TipoEnvio, string> = {
   pixCredito: 'Manda um Pix usando o limite do cartão, e você paga na fatura, à vista ou parcelado.',
 };
 
-/** Fazer um Pix, uma transferência ou um Pix no crédito: preencher, conferir e confirmar. */
-export function Enviar({ modo }: { modo: TipoEnvio }) {
+/** Centavos para o que se digita no campo: 3200 → "32,00". */
+function paraCampo(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace('.', ',');
+}
+
+/**
+ * Fazer um Pix, uma transferência ou um Pix no crédito: preencher, conferir e confirmar.
+ * Vindo de "Pagar" no racha, nome e valor já chegam preenchidos e as cotas ficam pagas no envio.
+ */
+export function Enviar({
+  modo,
+  preenchido,
+  quitar,
+}: {
+  modo: TipoEnvio;
+  preenchido?: { nome: string; valor: number };
+  quitar?: string[];
+}) {
   const saldo = useSaldoConta();
   const fatura = useFatura();
   const enviar = useConta((s) => s.enviar);
@@ -41,11 +58,11 @@ export function Enviar({ modo }: { modo: TipoEnvio }) {
 
   // Rascunho local: só vira envio ao confirmar.
   const [chave, setChave] = useState('');
-  const [nome, setNome] = useState('');
+  const [nome, setNome] = useState(preenchido?.nome ?? '');
   const [banco, setBanco] = useState('');
   const [agencia, setAgencia] = useState('');
   const [conta, setConta] = useState('');
-  const [valorTexto, setValorTexto] = useState('');
+  const [valorTexto, setValorTexto] = useState(preenchido ? paraCampo(preenchido.valor) : '');
   const [descricao, setDescricao] = useState('');
   const [parcelas, setParcelas] = useState(1);
   const [tentou, setTentou] = useState(false);
@@ -91,6 +108,8 @@ export function Enviar({ modo }: { modo: TipoEnvio }) {
       ...(sim ? { credito: { parcelas: sim.parcelas, parcela: sim.parcela, total: sim.total, juros: sim.juros } } : {}),
     };
     const id = enviar(envio);
+    // Pagou o que devia no racha: fica acertado.
+    if (quitar?.length) useRachas.getState().marcarRecebido(quitar);
     concluir('inicio', [{ nome: 'comprovante', id }]);
   };
 

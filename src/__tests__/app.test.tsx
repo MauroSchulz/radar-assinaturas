@@ -26,6 +26,7 @@ describe('app', () => {
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
     usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
     useAvisos.getState().recomecar();
   });
 
@@ -89,6 +90,7 @@ describe('rachar', () => {
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
     usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
     useAvisos.getState().recomecar();
   });
 
@@ -216,6 +218,7 @@ describe('investir', () => {
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
     usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
     useAvisos.getState().recomecar();
   });
 
@@ -281,6 +284,7 @@ describe('cartão de crédito e empréstimo', () => {
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
     usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
     useAvisos.getState().recomecar();
   });
 
@@ -327,6 +331,7 @@ describe('Pix, transferência e Pix no crédito', () => {
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
     usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
     useAvisos.getState().recomecar();
   });
 
@@ -428,6 +433,7 @@ describe('perfil, bancos e avisos no celular', () => {
     useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
     useConta.getState().recomecar();
     usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
     useAvisos.getState().recomecar();
     Object.values(notificacoes).forEach((f) => typeof f === 'function' && 'mockClear' in f && f.mockClear());
   });
@@ -498,5 +504,205 @@ describe('perfil, bancos e avisos no celular', () => {
     await fireEvent(screen.getByLabelText('Receber avisos'), 'valueChange', true);
     expect(screen.getByText(/O celular não deixou/)).toBeTruthy();
     expect(useAvisos.getState().ativados).toBe(false);
+  });
+});
+
+describe('boas-vindas, recomeçar e calendário', () => {
+  beforeEach(() => {
+    useNavegacao.setState({ aba: 'inicio', pilha: [] });
+    useLoja.getState().recomecar();
+    useRachas.setState(RACHAS_INICIAL, true);
+    useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
+    useAvisos.getState().recomecar();
+    usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
+  });
+
+  it('na primeira abertura, três telas de boas-vindas e depois o Início', async () => {
+    usePerfil.setState({ viuBoasVindas: false });
+    await render(<App />);
+    expect(screen.getByText('Bem-vindo ao Radar')).toBeTruthy();
+    expect(screen.getByLabelText('Passo 1 de 3')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByText('Avisa antes do dinheiro sair')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByText('Divide a conta e cobra por Pix')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Pular' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Começar' }));
+    expect(screen.getByText('Olá, Mauro')).toBeTruthy();
+    expect(usePerfil.getState().viuBoasVindas).toBe(true);
+  });
+
+  it('dá para pular as boas-vindas', async () => {
+    usePerfil.setState({ viuBoasVindas: false });
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Pular' }));
+    expect(screen.getByText('Olá, Mauro')).toBeTruthy();
+  });
+
+  it('recomeçar a demonstração apaga o que foi feito e mostra as boas-vindas de novo', async () => {
+    await render(<App />);
+    // Faz um Pix para ter o que apagar.
+    await fireEvent.press(screen.getByRole('button', { name: 'Pix' }));
+    await fireEvent.changeText(screen.getByLabelText('Chave Pix'), '(11) 98765-4321');
+    await fireEvent.changeText(screen.getByLabelText('Valor'), '50');
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Confirmar e enviar/ }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar ao início' }));
+    expect(useConta.getState().envios).toHaveLength(1);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Abrir perfil' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Recomeçar demonstração' }));
+    expect(screen.getByText(/Isso apaga o que você fez/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(useConta.getState().envios).toHaveLength(1);
+    await fireEvent.press(screen.getByRole('button', { name: 'Recomeçar demonstração' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, recomeçar' }));
+
+    expect(useConta.getState().envios).toHaveLength(0);
+    expect(screen.getByText('Bem-vindo ao Radar')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Pular' }));
+    expect(screen.getByLabelText(`Saldo em conta ${dinheiro(SALDO_INICIAL_DEMO)}`)).toBeTruthy();
+  });
+
+  it('o calendário abre pelo atalho, mostra o mês e o dia tocado', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Calendário' }));
+    expect(screen.getByText('Cobranças das assinaturas')).toBeTruthy();
+    // Um dia com cobrança: o leitor de tela fala quantas e quanto.
+    const comCobranca = screen.getAllByRole('button', { name: /: \d+ cobranças?, R\$/ });
+    expect(comCobranca.length).toBeGreaterThan(0);
+    await fireEvent.press(comCobranca[0]);
+    expect(comCobranca[0]).toBeSelected();
+    expect(screen.getAllByText(/^(Já cobrada|Vai cobrar|Fim do teste grátis)/).length).toBeGreaterThan(0);
+    // Navega pelos meses.
+    await fireEvent.press(screen.getByRole('button', { name: 'Próximo mês' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Mês anterior' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Mês anterior' }));
+    expect(screen.getAllByRole('button', { name: /sem cobrança|cobranças?,/ }).length).toBeGreaterThan(27);
+  });
+});
+
+describe('racha: divisão, alguém pagou e cobrar todos', () => {
+  beforeEach(() => {
+    useNavegacao.setState({ aba: 'inicio', pilha: [] });
+    useLoja.getState().recomecar();
+    useRachas.setState(RACHAS_INICIAL, true);
+    useInvestimentos.setState(INVESTIMENTOS_INICIAL, true);
+    useConta.getState().recomecar();
+    useAvisos.getState().recomecar();
+    usePerfil.getState().recomecar();
+    usePerfil.setState({ viuBoasVindas: true });
+  });
+
+  it('na demonstração, a Ana pagou o cinema e você deve a ela', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    expect(screen.getByText('Você deve')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Pagar Ana, R\$.32,00/ })).toBeTruthy();
+    expect(screen.getByText(/E você deve R\$.32,00 a Ana/)).toBeTruthy();
+    // O Início só conta quem te deve.
+    await fireEvent.press(screen.getByRole('tab', { name: 'Início' }));
+    expect(screen.getByText(/Bruno, Carla e Júlia te devem/)).toBeTruthy();
+  });
+
+  it('divide por valor: só deixa criar quando fecha o total', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Rachar uma compra' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Livraria Cultura/ }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Ana' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Por valor' }));
+    await fireEvent.changeText(screen.getByLabelText('Valor de Você'), '40');
+    await fireEvent.changeText(screen.getByLabelText('Valor de Ana'), '20');
+    expect(screen.getByText(/Faltam R\$.9,90 para fechar R\$.69,90/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Criar racha' })).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText('Valor de Ana'), '29,90');
+    expect(screen.getByText(/Fechou certinho/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Criar racha' }));
+    expect(screen.getByText(/Dividido por valor/)).toBeTruthy();
+    expect(screen.getByText(/29,90 · pendente/)).toBeTruthy();
+  });
+
+  it('divide por partes: quem conta 2 paga o dobro', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Rachar uma compra' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Livraria Cultura/ }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Bruno' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Por partes' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Mais uma parte para Bruno' }));
+    // 69,90 em 3 partes: você 1 (23,30), Bruno 2 (46,60).
+    expect(screen.getByText('R$\u00A046,60')).toBeTruthy();
+    expect(screen.getByText('R$\u00A023,30')).toBeTruthy();
+  });
+
+  it('alguém pagou: registra, você deve, e o Pix sai preenchido e quita', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Alguém pagou' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    expect(screen.getByText(/Escreva o que foi/)).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('O que foi'), 'Uber da volta');
+    await fireEvent.changeText(screen.getByLabelText('Valor total'), '36');
+    await fireEvent.press(screen.getByRole('radio', { name: 'Júlia' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    // Quem pagou já entra na divisão.
+    expect(screen.getByRole('checkbox', { name: 'Júlia (pagou)' })).toBeChecked();
+    expect(screen.getByText(/Você vai dever/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Criar racha' }));
+    expect(screen.getByText(/que você deve a Júlia/)).toBeTruthy();
+
+    // A Júlia te devia 72,00 da pizza; agora, um pelo outro, 54,00.
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    expect(screen.getByRole('button', { name: /^Cobrar Júlia, R\$.54,00, te deve R\$.72,00, você deve R\$.18,00/ })).toBeTruthy();
+
+    // Pagar a Júlia: um pelo outro, quem deve é ela; dá para acertar só a sua parte.
+    await fireEvent.press(screen.getByRole('button', { name: /^Uber da volta/ }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Pagar Júlia' }));
+    expect(screen.getByText(/Um pelo outro, quem deve é Júlia: R\$.54,00/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /^Já paguei os R\$.18,00/ }));
+    expect(screen.getByText(/18,00 · você pagou em/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+
+    // Pagar a Ana com Pix: nome e valor já vêm preenchidos, e o envio quita a dívida.
+    await fireEvent.press(screen.getByRole('button', { name: /^Pagar Ana/ }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Pagar R\$.32,00 com Pix/ }));
+    expect(screen.getByLabelText('Nome de quem recebe').props.value).toBe('Ana');
+    expect(screen.getByLabelText('Valor').props.value).toBe('32,00');
+    await fireEvent.changeText(screen.getByLabelText('Chave Pix'), 'ana@exemplo.com');
+    await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Confirmar e enviar/ }));
+    expect(screen.getByText('Pix enviado')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    expect(screen.queryByRole('button', { name: /^Pagar Ana/ })).toBeNull();
+  });
+
+  it('cobrar todos: manda uma por pessoa e a segunda vez vai como lembrete', async () => {
+    const compartilhar = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined });
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('tab', { name: 'Rachar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Cobrar todos' }));
+    expect(screen.getByText('3 pessoas te devem')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Enviar cobrança para Bruno' }));
+    expect((compartilhar.mock.calls.at(-1)![0] as { message: string }).message).toMatch(/^Oi, Bruno! Sua parte no racha:/);
+    expect(screen.getByLabelText('Bruno: cobrança enviada hoje')).toBeTruthy();
+    expect(useRachas.getState().cobradoEm.bruno).toBeTruthy();
+
+    // Na cobrança do Bruno, a próxima mensagem já é a de lembrete.
+    await fireEvent.press(screen.getByRole('button', { name: /^Ver cobrança de Bruno/ }));
+    expect(screen.getByText(/esta mensagem vai como lembrete/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Enviar cobrança' }));
+    expect((compartilhar.mock.calls.at(-1)![0] as { message: string }).message).toMatch(/^Oi, Bruno! Passando só pra lembrar/);
+    compartilhar.mockRestore();
+  });
+
+  it('o aviso de lembrar de cobrar entra na lista de avisos', async () => {
+    await render(<App />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Abrir perfil' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Avisos no celular/ }));
+    expect(screen.getByLabelText('Lembrar de cobrar quem te deve')).toBeTruthy();
+    expect(screen.getAllByText(/te deve R\$/).length).toBeGreaterThan(0);
   });
 });

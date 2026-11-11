@@ -27,10 +27,15 @@ export function Rachar() {
   const chavePix = useRachas((s) => s.pix.chave);
   const ir = useNavegacao((s) => s.ir);
 
-  const totalDevido = saldos.reduce((s, x) => s + x.devendo, 0);
+  // Um pelo outro: quem te deve (saldo positivo) e a quem você deve (negativo).
+  const devedores = saldos.filter((s) => s.liquido > 0);
+  const credores = saldos.filter((s) => s.liquido < 0);
+  const totalDevido = devedores.reduce((s, x) => s + x.liquido, 0);
+  const totalVoceDeve = credores.reduce((s, x) => s - x.liquido, 0);
   // Quanto dos rachas já voltou para você: o que foi pago sobre tudo o que os amigos devem.
-  const totalDasCotas = cotas.reduce((s, c) => s + c.valor, 0);
-  const recebido = cotas.filter((c) => c.pagoEm).reduce((s, c) => s + c.valor, 0);
+  const aReceber = cotas.filter((c) => c.direcao === 'teDeve');
+  const totalDasCotas = aReceber.reduce((s, c) => s + c.valor, 0);
+  const recebido = aReceber.filter((c) => c.pagoEm).reduce((s, c) => s + c.valor, 0);
   const fracaoRecebida = totalDasCotas > 0 ? recebido / totalDasCotas : 0;
   const rachasAbertos = rachas.filter((r) => cotas.some((c) => c.rachaId === r.id && !c.pagoEm)).length;
 
@@ -41,7 +46,7 @@ export function Rachar() {
         accessible
         accessibilityLabel={
           totalDevido > 0
-            ? `Te devem ${dinheiro(totalDevido)}, ${saldos.length} ${saldos.length === 1 ? 'pessoa' : 'pessoas'}. Já recebeu ${dinheiro(recebido)} de ${dinheiro(totalDasCotas)}.`
+            ? `Te devem ${dinheiro(totalDevido)}, ${devedores.length} ${devedores.length === 1 ? 'pessoa' : 'pessoas'}.${totalVoceDeve ? ` Você deve ${dinheiro(totalVoceDeve)}.` : ''} Já recebeu ${dinheiro(recebido)} de ${dinheiro(totalDasCotas)}.`
             : 'Ninguém te deve nada agora'
         }
       >
@@ -55,24 +60,30 @@ export function Rachar() {
         {totalDevido > 0 ? (
           <View style={estilos.quem}>
             <View style={estilos.rostos}>
-              {saldos.slice(0, ROSTOS_NO_TOTAL).map(({ pessoa }, i) => (
+              {devedores.slice(0, ROSTOS_NO_TOTAL).map(({ pessoa }, i) => (
                 <View key={pessoa.id} style={[estilos.rosto, i > 0 && estilos.rostoSobreposto]}>
                   <Avatar nome={pessoa.nome} categoria={categoriaDaPessoa(pessoa.nome)} tamanho={LADO_DO_ROSTO} redondo />
                 </View>
               ))}
-              {saldos.length > ROSTOS_NO_TOTAL && (
+              {devedores.length > ROSTOS_NO_TOTAL && (
                 <View style={[estilos.rosto, estilos.rostoSobreposto, estilos.mais]}>
-                  <Texto variante="legenda" cor={cor.sobreDestaque}>{`+${saldos.length - ROSTOS_NO_TOTAL}`}</Texto>
+                  <Texto variante="legenda" cor={cor.sobreDestaque}>{`+${devedores.length - ROSTOS_NO_TOTAL}`}</Texto>
                 </View>
               )}
             </View>
             <Texto variante="apoio" cor={cor.sobreDestaqueSuave} style={estilos.quemTexto}>
-              {`${saldos.length} ${saldos.length === 1 ? 'pessoa' : 'pessoas'} · ${rachasAbertos} ${rachasAbertos === 1 ? 'racha aberto' : 'rachas abertos'}`}
+              {`${devedores.length} ${devedores.length === 1 ? 'pessoa' : 'pessoas'} · ${rachasAbertos} ${rachasAbertos === 1 ? 'racha aberto' : 'rachas abertos'}`}
             </Texto>
           </View>
         ) : (
           <Texto variante="apoio" cor={cor.sobreDestaqueSuave}>
             Ninguém te deve nada agora.
+          </Texto>
+        )}
+
+        {totalVoceDeve > 0 && (
+          <Texto variante="apoio" cor={cor.sobreDestaqueSuave} style={estilos.voceDeveTopo}>
+            {`E você deve ${dinheiro(totalVoceDeve)} a ${credores.map((c) => c.pessoa.nome).join(' e ')}.`}
           </Texto>
         )}
 
@@ -95,6 +106,16 @@ export function Rachar() {
 
       <View style={estilos.acao}>
         <Botao variante="primario" icone="add-circle-outline" rotulo="Rachar uma compra" aoTocar={() => ir({ nome: 'escolherCompra' })} />
+        <View style={estilos.acoesLado}>
+          {devedores.length > 0 && (
+            <View style={estilos.metade}>
+              <Botao icone="paper-plane-outline" rotulo="Cobrar todos" aoTocar={() => ir({ nome: 'cobrarTodos' })} />
+            </View>
+          )}
+          <View style={estilos.metade}>
+            <Botao icone="person-add-outline" rotulo="Alguém pagou" aoTocar={() => ir({ nome: 'novaDespesa' })} />
+          </View>
+        </View>
       </View>
 
       {!temPix(chavePix) && (
@@ -111,11 +132,21 @@ export function Rachar() {
         </Cartao>
       )}
 
-      {saldos.length > 0 && (
+      {devedores.length > 0 && (
         <Secao titulo="Quem te deve">
           <Lista>
-            {saldos.map((saldo) => (
+            {devedores.map((saldo) => (
               <LinhaPessoa key={saldo.pessoa.id} saldo={saldo} aoTocar={() => ir({ nome: 'cobranca', pessoaId: saldo.pessoa.id })} />
+            ))}
+          </Lista>
+        </Secao>
+      )}
+
+      {credores.length > 0 && (
+        <Secao titulo="Você deve">
+          <Lista>
+            {credores.map((saldo) => (
+              <LinhaPessoa key={saldo.pessoa.id} saldo={saldo} aoTocar={() => ir({ nome: 'pagarAmigo', pessoaId: saldo.pessoa.id })} />
             ))}
           </Lista>
         </Secao>
@@ -145,16 +176,24 @@ export function Rachar() {
   );
 }
 
-/** Uma pessoa que te deve: a linha inteira abre a cobrança. */
+/**
+ * Uma pessoa com saldo: se te deve, a linha abre a cobrança; se você deve, abre o "Pagar".
+ * O valor é um pelo outro.
+ */
 function LinhaPessoa({ saldo, aoTocar }: { saldo: Saldo; aoTocar: () => void }) {
-  const { pessoa, devendo, pendentes } = saldo;
-  const maisAntiga = pendentes.reduce((min, c) => (c.referente < min ? c.referente : min), pendentes[0].referente);
+  const { pessoa, liquido, devendo, voceDeve, pendentes, desde } = saldo;
+  const teDeve = liquido > 0;
+  const valor = Math.abs(liquido);
   const quantas = `${pendentes.length} ${pendentes.length === 1 ? 'pendência' : 'pendências'}`;
+  // Com as duas direções, mostra o "um pelo outro".
+  const detalhe =
+    devendo > 0 && voceDeve > 0 ? `te deve ${dinheiro(devendo)}, você deve ${dinheiro(voceDeve)}` : `${quantas} · desde ${dataCurta(desde)}`;
+  const acao = teDeve ? 'Cobrar' : 'Pagar';
   return (
     <Pressable
       onPress={aoTocar}
       accessibilityRole="button"
-      accessibilityLabel={`Cobrar ${pessoa.nome}, ${dinheiro(devendo)}, ${quantas}, desde ${dataCurta(maisAntiga)}`}
+      accessibilityLabel={`${acao} ${pessoa.nome}, ${dinheiro(valor)}, ${detalhe}`}
       style={({ pressed }) => [estilos.linhaPessoa, pressed && estilos.pressionada]}
     >
       <Avatar nome={pessoa.nome} categoria={categoriaDaPessoa(pessoa.nome)} redondo />
@@ -163,14 +202,14 @@ function LinhaPessoa({ saldo, aoTocar }: { saldo: Saldo; aoTocar: () => void }) 
           {pessoa.nome}
         </Texto>
         <Texto variante="apoio" cor={cor.textoSuave} numberOfLines={1}>
-          {`${quantas} · desde ${dataCurta(maisAntiga)}`}
+          {detalhe}
         </Texto>
       </View>
       <View style={estilos.fim}>
-        <Texto variante="valor">{dinheiro(devendo)}</Texto>
+        <Texto variante="valor">{dinheiro(valor)}</Texto>
         <View style={estilos.pilulaCobrar}>
           <Texto variante="legenda" cor={cor.destaqueTexto}>
-            Cobrar
+            {acao}
           </Texto>
           <Ionicons name="chevron-forward" size={14} color={cor.destaqueTexto} />
         </View>
@@ -199,7 +238,10 @@ const estilos = StyleSheet.create({
   numero: { fontVariant: ['tabular-nums'] },
   trilho: { height: 6, borderRadius: raio.pilula, backgroundColor: cor.trilhoSobreDestaque, overflow: 'hidden' },
   cheio: { height: '100%', borderRadius: raio.pilula, backgroundColor: cor.sobreDestaque },
-  acao: { marginTop: espaco.m },
+  acao: { marginTop: espaco.m, gap: espaco.s },
+  acoesLado: { flexDirection: 'row', gap: espaco.s },
+  metade: { flex: 1 },
+  voceDeveTopo: { marginTop: espaco.xs },
   dica: { marginTop: espaco.m, gap: espaco.xs },
   dicaLinha: { flexDirection: 'row', gap: espaco.m, alignItems: 'flex-start' },
   dicaTexto: { flex: 1 },

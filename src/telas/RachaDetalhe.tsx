@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Avatar } from '../componentes/Avatar';
+import { Avatar, categoriaDaPessoa } from '../componentes/Avatar';
 import { Botao } from '../componentes/Botao';
 import { Cartao, Secao } from '../componentes/Cartao';
 import { comQuem } from '../componentes/LinhaRacha';
@@ -10,38 +10,51 @@ import { Texto } from '../componentes/Texto';
 import { Voltar } from '../componentes/Voltar';
 import { dataCurta, dataLonga } from '../dominio/datas';
 import { dinheiro } from '../dominio/formato';
-import { cobrancasDoRacha, dividir, type Cota } from '../dominio/racha';
+import { cobrancasDoRacha, dividirPor, type Cota } from '../dominio/racha';
 import { ASSINATURAS } from '../estado/extrato';
 import { useNavegacao } from '../estado/navegacao';
 import { useRachas } from '../estado/rachas';
 import { useCotas, useRacha } from '../estado/radar';
 import { ALVO_MINIMO, cor, espaco } from '../tema/tokens';
 
+/** A parte de um amigo (te deve) ou a sua (você deve a quem pagou). */
 function LinhaCota({ cota, nome }: { cota: Cota; nome: string }) {
   const alternarPago = useRachas((s) => s.alternarPago);
-  const pessoa = useRachas((s) => s.pessoas.find((p) => p.id === cota.pessoaId));
   const ir = useNavegacao((s) => s.ir);
+  const voceDeve = cota.direcao === 'voceDeve';
+  const titulo = voceDeve ? `Você deve a ${nome}` : nome;
   return (
     <View style={estilos.linha}>
       <View style={estilos.meio}>
-        <Texto variante="corpoForte">{nome}</Texto>
-        <Texto variante="apoio" cor={cota.pagoEm ? cor.textoSuave : cor.perigo}>
-          {cota.pagoEm ? `${dinheiro(cota.valor)} · pagou em ${dataCurta(cota.pagoEm)}` : `${dinheiro(cota.valor)} · pendente`}
+        <Texto variante="corpoForte">{titulo}</Texto>
+        <Texto variante="apoio" cor={cota.pagoEm ? cor.textoSuave : cor.perigoSobreFundo}>
+          {cota.pagoEm
+            ? `${dinheiro(cota.valor)} · ${voceDeve ? 'você pagou' : 'pagou'} em ${dataCurta(cota.pagoEm)}`
+            : `${dinheiro(cota.valor)} · pendente`}
         </Texto>
       </View>
       {cota.pagoEm ? (
-        <Botao compacto variante="link" rotulo="Desfazer" nomeAcessivel={`Desfazer pagamento de ${nome}`} aoTocar={() => alternarPago(cota.chave)} />
+        <Botao
+          compacto
+          variante="link"
+          rotulo="Desfazer"
+          nomeAcessivel={voceDeve ? `Desfazer seu pagamento a ${nome}` : `Desfazer pagamento de ${nome}`}
+          aoTocar={() => alternarPago(cota.chave)}
+        />
+      ) : voceDeve ? (
+        <View style={estilos.botoes}>
+          <Botao compacto variante="link" rotulo="Pagar" nomeAcessivel={`Pagar ${nome}`} aoTocar={() => ir({ nome: 'pagarAmigo', pessoaId: cota.pessoaId })} />
+          <Botao compacto rotulo="Já paguei" nomeAcessivel={`Já paguei ${nome}`} aoTocar={() => alternarPago(cota.chave)} />
+        </View>
       ) : (
         <View style={estilos.botoes}>
-          {pessoa && (
-            <Botao
-              compacto
-              variante="link"
-              rotulo="Cobrar"
-              nomeAcessivel={`Cobrar ${nome}`}
-              aoTocar={() => ir({ nome: 'cobranca', pessoaId: pessoa.id, rachaId: cota.rachaId })}
-            />
-          )}
+          <Botao
+            compacto
+            variante="link"
+            rotulo="Cobrar"
+            nomeAcessivel={`Cobrar ${nome}`}
+            aoTocar={() => ir({ nome: 'cobranca', pessoaId: cota.pessoaId, rachaId: cota.rachaId })}
+          />
           <Botao compacto rotulo="Recebi" nomeAcessivel={`Recebi de ${nome}`} aoTocar={() => alternarPago(cota.chave)} />
         </View>
       )}
@@ -65,62 +78,77 @@ export function RachaDetalhe({ id }: { id: string }) {
   const partes = racha.pessoas.length + (racha.incluiVoce ? 1 : 0);
   const { origem } = racha;
   const assinatura = origem.tipo === 'assinatura' ? ASSINATURAS.find((a) => a.id === origem.assinaturaId) : undefined;
-  const valorBase = origem.tipo === 'compra' ? origem.valor : (assinatura?.valorAtual ?? 0);
-  const { suaParte } = dividir(valorBase, racha.pessoas.length, racha.incluiVoce);
+  const valorBase = origem.tipo === 'assinatura' ? (assinatura?.valorAtual ?? 0) : origem.valor;
+  const { suaParte } = dividirPor(valorBase, racha.pessoas, racha.incluiVoce, racha.divisao);
+  const pagador = racha.pagouId ? nomeDe(racha.pagouId) : null;
+  const modo = racha.divisao?.modo ?? 'igual';
+  const comoDividiu = modo === 'valor' ? 'Dividido por valor' : modo === 'partes' ? 'Dividido por partes' : `Dividido em ${partes}`;
+  const legenda =
+    origem.tipo === 'assinatura'
+      ? `Toda cobrança, desde ${dataLonga(origem.desde)} · ${comQuem(nomes)}`
+      : pagador
+        ? `${dataLonga(origem.data)} · ${pagador} pagou${nomes.filter((n) => n !== pagador).length ? ` · ${comQuem(nomes.filter((n) => n !== pagador))}` : ''}`
+        : `${dataLonga(origem.data)} · ${comQuem(nomes)}`;
 
   return (
     <Tela topo={<Voltar />}>
       <View style={estilos.cabeca}>
-        <Avatar nome={racha.titulo} categoria={assinatura?.categoria ?? 'compras'} tamanho={64} />
+        <Avatar nome={racha.titulo} categoria={assinatura?.categoria ?? categoriaDaPessoa(racha.titulo)} tamanho={64} />
         <View style={estilos.cabecaTextos}>
           <Texto variante="titulo" accessibilityRole="header">
             {racha.titulo}
           </Texto>
           <Texto variante="apoio" cor={cor.textoSobreFundo}>
-            {origem.tipo === 'compra'
-              ? `${dataLonga(origem.data)} · ${comQuem(nomes)}`
-              : `Toda cobrança, desde ${dataLonga(origem.desde)} · ${comQuem(nomes)}`}
+            {legenda}
           </Texto>
         </View>
       </View>
 
       <Cartao>
         <Texto variante="apoio" cor={cor.textoSuave}>
-          {origem.tipo === 'compra' ? 'Total da compra' : 'Valor por mês'}
+          {origem.tipo === 'assinatura' ? 'Valor por mês' : pagador ? `Total que ${pagador} pagou` : 'Total da compra'}
         </Texto>
         <Texto variante="valorGrande">{dinheiro(valorBase)}</Texto>
         {racha.incluiVoce ? (
           <Texto variante="corpo" style={estilos.frase}>
-            {`Dividido em ${partes}. Sua parte: `}
+            {`${comoDividiu}. Sua parte: `}
             <Texto variante="valor">{dinheiro(suaParte)}</Texto>
-            {origem.tipo === 'assinatura' ? ' por mês.' : '.'}
+            {origem.tipo === 'assinatura' ? ' por mês.' : pagador ? `, que você deve a ${pagador}.` : '.'}
           </Texto>
         ) : (
           <Texto variante="corpo" style={estilos.frase}>
             {`Dividido entre ${partes === 1 ? '1 pessoa' : `${partes} pessoas`}. Você não entra na divisão.`}
           </Texto>
         )}
-        {racha.incluiVoce && valorBase % partes !== 0 && (
+        {modo === 'igual' && racha.incluiVoce && !pagador && valorBase % partes !== 0 && (
           <Texto variante="apoio" cor={cor.textoSuave} style={estilos.frase}>
             Os centavos que sobram da divisão ficam com você.
           </Texto>
         )}
       </Cartao>
 
-      {cobrancas.map((cobranca) => (
-        <Secao
-          key={cobranca.data}
-          titulo={origem.tipo === 'compra' ? 'Quem já pagou' : `Cobrança de ${dataCurta(cobranca.data)} · ${dinheiro(cobranca.valor)}`}
-        >
-          <Lista recuo={espaco.l}>
-            {cotas
-              .filter((c) => c.referente === cobranca.data)
-              .map((c) => (
+      {cobrancas.map((cobranca) => {
+        const doDia = cotas.filter((c) => c.referente === cobranca.data);
+        if (doDia.length === 0) return null;
+        return (
+          <Secao
+            key={cobranca.data}
+            titulo={
+              origem.tipo === 'assinatura'
+                ? `Cobrança de ${dataCurta(cobranca.data)} · ${dinheiro(cobranca.valor)}`
+                : pagador
+                  ? 'A sua parte'
+                  : 'Quem já pagou'
+            }
+          >
+            <Lista recuo={espaco.l}>
+              {doDia.map((c) => (
                 <LinhaCota key={c.chave} cota={c} nome={nomeDe(c.pessoaId)} />
               ))}
-          </Lista>
-        </Secao>
-      ))}
+            </Lista>
+          </Secao>
+        );
+      })}
 
       <View style={estilos.rodape}>
         <Botao

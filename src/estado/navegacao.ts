@@ -16,19 +16,24 @@ export type Rota =
   | { nome: 'assinatura'; id: string }
   | { nome: 'racha'; id: string }
   | { nome: 'escolherCompra' }
-  | { nome: 'montarRacha'; titulo: string; origem: OrigemRacha }
+  | { nome: 'montarRacha'; titulo: string; origem: OrigemRacha; pagouId?: string }
+  | { nome: 'novaDespesa' }
+  | { nome: 'pagarAmigo'; pessoaId: string }
+  | { nome: 'cobrarTodos' }
   | { nome: 'seuPix' }
   | { nome: 'caixinha'; id: string }
   | { nome: 'novaCaixinha'; sugestao?: SugestaoDeCaixinha }
   | { nome: 'fatura' }
   | { nome: 'emprestimo' }
   | { nome: 'cobranca'; pessoaId: string; rachaId?: string }
-  | { nome: 'enviar'; modo: TipoEnvio }
+  /** `preenchido`: nome e valor já no formulário; `quitar`: cotas que ficam pagas quando o Pix sai. */
+  | { nome: 'enviar'; modo: TipoEnvio; preenchido?: { nome: string; valor: number }; quitar?: string[] }
   | { nome: 'comprovante'; id: string }
   | { nome: 'perfil' }
   | { nome: 'bancos' }
   | { nome: 'conectarBanco'; bancoId: string }
-  | { nome: 'notificacoes' };
+  | { nome: 'notificacoes' }
+  | { nome: 'calendario' };
 
 /**
  * Cinco abas e, por cima delas, uma pilha de telas. `ir` empilha, `voltar` desempilha,

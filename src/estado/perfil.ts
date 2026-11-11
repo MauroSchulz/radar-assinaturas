@@ -14,6 +14,9 @@ interface EstadoPerfil {
   nome: string;
   foto: Foto;
   conexoes: Conexao[];
+  /** Já passou pelas boas-vindas da primeira abertura. */
+  viuBoasVindas: boolean;
+  marcarBoasVindas: () => void;
   salvarNome: (nome: string) => void;
   trocarFoto: (uri: string) => void;
   removerFoto: () => void;
@@ -25,12 +28,13 @@ interface EstadoPerfil {
 
 export const NOME_INICIAL = 'Mauro Schulz';
 
-const INICIAL = { nome: NOME_INICIAL, foto: { tipo: 'padrao' } as Foto, conexoes: [] as Conexao[] };
+const INICIAL = { nome: NOME_INICIAL, foto: { tipo: 'padrao' } as Foto, conexoes: [] as Conexao[], viuBoasVindas: false };
 
 export const usePerfil = create<EstadoPerfil>()(
   persist(
     (set) => ({
       ...INICIAL,
+      marcarBoasVindas: () => set({ viuBoasVindas: true }),
       salvarNome: (nome) => set({ nome: nome.trim() }),
       trocarFoto: (uri) => set({ foto: { tipo: 'escolhida', uri } }),
       removerFoto: () => set({ foto: { tipo: 'nenhuma' } }),
@@ -43,7 +47,7 @@ export const usePerfil = create<EstadoPerfil>()(
     {
       name: 'radar.perfil.v1',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ nome: s.nome, foto: s.foto, conexoes: s.conexoes }),
+      partialize: (s) => ({ nome: s.nome, foto: s.foto, conexoes: s.conexoes, viuBoasVindas: s.viuBoasVindas }),
     },
   ),
 );

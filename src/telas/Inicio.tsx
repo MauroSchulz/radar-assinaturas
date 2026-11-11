@@ -223,10 +223,12 @@ export function Inicio() {
   const ir = useNavegacao((s) => s.ir);
   const abrir = abrirAssinatura;
   const proximas = proximasCobrancas(assinaturas);
-  const saldos = useSaldos();
+  // Só quem te deve, um pelo outro (quem você deve fica na aba Rachar).
+  const todosOsSaldos = useSaldos();
+  const saldos = useMemo(() => todosOsSaldos.filter((s) => s.liquido > 0), [todosOsSaldos]);
   const envios = useConta((s) => s.envios);
   const FATURA = useFatura();
-  const totalDevido = saldos.reduce((s, x) => s + x.devendo, 0);
+  const totalDevido = saldos.reduce((s, x) => s + x.liquido, 0);
   const nomes = saldos.map((s) => s.pessoa.nome);
   const nomesQueDevem = nomes.length <= 1 ? (nomes[0] ?? '') : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`;
   const valor = (centavos: number) => (ocultar ? OCULTO : dinheiro(centavos));
@@ -234,6 +236,7 @@ export function Inicio() {
 
   const atalhos: { icone: Icone; rotulo: string; acao: () => void }[] = [
     { icone: 'albums-outline', rotulo: 'Assinaturas', acao: () => trocarAba('assinaturas') },
+    { icone: 'calendar-outline', rotulo: 'Calendário', acao: () => ir({ nome: 'calendario' }) },
     { icone: 'people-outline', rotulo: 'Rachar compra', acao: () => ir({ nome: 'escolherCompra' }) },
     { icone: 'cash-outline', rotulo: 'Cobrar', acao: () => trocarAba('rachar') },
     { icone: 'trending-up-outline', rotulo: 'Investir', acao: () => trocarAba('investir') },
@@ -405,7 +408,7 @@ export function Inicio() {
 
       {proximas.length > 0 && (
         <>
-          <Secao titulo="Próximos 7 dias">
+          <Secao titulo="Próximos 7 dias" acao={<Botao variante="link" rotulo="Ver calendário" aoTocar={() => ir({ nome: 'calendario' })} />}>
             <Lista>
               {proximas.map((a) => (
                 <LinhaAssinatura key={a.id} assinatura={a} decisao={decisoes[a.id]} aoTocar={() => abrir(a.id)} />

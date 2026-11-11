@@ -51,6 +51,20 @@ fosse toda sua.
 - **Sem centavo perdido.** R$ 10,00 em três dá R$ 3,33 + R$ 3,33 + R$ 3,34: o centavo que sobra
   fica com quem criou o racha ([`src/dominio/racha.ts`](src/dominio/racha.ts)).
 
+### Dividir de outro jeito, quando outro pagou, e cobrar todos
+
+- **Como dividir**: igual, **por valor** (cada um diz quanto; só cria quando fecha o total) ou
+  **por partes** (quem levou acompanhante conta 2). Em assinatura, igual ou por partes.
+- **Alguém pagou**: registra uma conta que um amigo pagou (não está no seu cartão). A sua parte vira
+  **"Você deve"**, e o saldo com cada amigo é **um pelo outro**: o que você deve sai descontado da
+  cobrança. "Pagar" abre o Pix já com nome e valor, e o envio deixa a conta acertada.
+- **Cobrar todos**: uma mensagem por pessoa, marcando quem já foi cobrado hoje. Quem já foi cobrado
+  recebe a mensagem de **lembrete**, mais gentil. Com os avisos ligados, o Radar lembra no celular
+  quando alguém te deve há uma semana.
+
+Regras em [`src/dominio/racha.ts`](src/dominio/racha.ts) (`dividirPor`, `erroDaDivisao`, `saldos`) e
+[`src/dominio/lembretes.ts`](src/dominio/lembretes.ts) (`lembretesDeRacha`).
+
 ## Investir
 
 O banco já tem investimento; o que falta é ligar o investimento ao gasto que você pode cortar.
@@ -83,6 +97,17 @@ gastou vem escrito em cima ("Você gastou mais em julho") e com o valor na colun
 mostra o total, quantas compras, quanto foi assinatura e quanto ficou acima ou abaixo da média.
 O mês de hoje conta só até hoje e fica fora da média; os que ainda não chegaram ficam sem coluna.
 Regra em [`src/dominio/gastos.ts`](src/dominio/gastos.ts).
+
+## Calendário, boas-vindas e recomeçar
+
+- **Calendário de cobranças**: o mês em grade, com um ponto em cada dia que tem cobrança (já cobrada,
+  vai cobrar ou fim de teste grátis), o total do mês e o que ainda vai sair. Tocar num dia lista as
+  cobranças. O que já passou vem do extrato; o que falta é previsto pelo ritmo de cada assinatura
+  ([`src/dominio/calendario.ts`](src/dominio/calendario.ts)). Abre pelo atalho do Início, pela aba
+  Assinaturas e por "Próximos 7 dias".
+- **Boas-vindas**: três telas na primeira abertura, com "Pular".
+- **Recomeçar demonstração** (no perfil): apaga o que foi feito e volta tudo para o começo, com as
+  boas-vindas de novo. Bom para usar antes de apresentar.
 
 ## Perfil, banco conectado e avisos no celular
 

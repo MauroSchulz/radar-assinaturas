@@ -9,7 +9,7 @@ import { QrCode } from '../componentes/QrCode';
 import { Tela } from '../componentes/Tela';
 import { Texto } from '../componentes/Texto';
 import { Voltar } from '../componentes/Voltar';
-import { dataCurta } from '../dominio/datas';
+import { dataCurta, quando } from '../dominio/datas';
 import { dinheiro } from '../dominio/formato';
 import { FORMAS_DE_PAGAMENTO, type FormaDePagamento } from '../dominio/racha';
 import { useCobranca } from '../estado/cobrar';
@@ -32,6 +32,7 @@ export function Cobranca({ pessoaId, rachaId }: { pessoaId: string; rachaId?: st
   const c = useCobranca(pessoaId, rachaId);
   const alternarForma = useRachas((s) => s.alternarForma);
   const marcarRecebido = useRachas((s) => s.marcarRecebido);
+  const registrarCobranca = useRachas((s) => s.registrarCobranca);
   const tituloDoRacha = useRachas((s) => (rachaId ? s.rachas.find((r) => r.id === rachaId)?.titulo : undefined));
   const ir = useNavegacao((s) => s.ir);
   const voltar = useNavegacao((s) => s.voltar);
@@ -55,9 +56,29 @@ export function Cobranca({ pessoaId, rachaId }: { pessoaId: string; rachaId?: st
       </Texto>
       <Texto variante="valorGrande">{dinheiro(c.total)}</Texto>
 
-      {c.total === 0 ? (
+      {c.voceDeve > 0 && c.teDeve > 0 && (
+        <Texto variante="apoio" cor={cor.textoSuave}>
+          {`${nome} te deve ${dinheiro(c.teDeve)} e você deve ${dinheiro(c.voceDeve)}: um pelo outro.`}
+        </Texto>
+      )}
+      {c.cobradoEm && c.total > 0 && (
+        <Texto variante="apoio" cor={cor.textoSuave}>
+          {`Você cobrou ${quando(c.cobradoEm)}: esta mensagem vai como lembrete, mais gentil.`}
+        </Texto>
+      )}
+
+      {c.total <= 0 ? (
         <Cartao destaque style={estilos.bloco}>
-          <Texto variante="corpo">{`${nome} não deve nada${tituloDoRacha ? ' neste racha' : ''}. Tudo em dia!`}</Texto>
+          <Texto variante="corpo">
+            {c.total < 0
+              ? `Um pelo outro, quem deve é você: ${dinheiro(-c.total)} a ${nome}.`
+              : `${nome} não deve nada${tituloDoRacha ? ' neste racha' : ''}. Tudo em dia!`}
+          </Texto>
+          {c.total < 0 && (
+            <View style={estilos.link}>
+              <Botao variante="link" rotulo={`Pagar ${nome}`} aoTocar={() => ir({ nome: 'pagarAmigo', pessoaId })} />
+            </View>
+          )}
         </Cartao>
       ) : (
         <>
@@ -65,9 +86,11 @@ export function Cobranca({ pessoaId, rachaId }: { pessoaId: string; rachaId?: st
             {c.itens.map((i, n) => (
               <View key={n} style={estilos.item}>
                 <Texto variante="corpo" style={estilos.itemNome} numberOfLines={1}>
-                  {`${i.titulo} · ${dataCurta(i.referente)}`}
+                  {i.valor < 0 ? `Você deve: ${i.titulo} · ${dataCurta(i.referente)}` : `${i.titulo} · ${dataCurta(i.referente)}`}
                 </Texto>
-                <Texto variante="valor">{dinheiro(i.valor)}</Texto>
+                <Texto variante="valor" cor={i.valor < 0 ? cor.textoSuave : cor.texto}>
+                  {i.valor < 0 ? `− ${dinheiro(-i.valor)}` : dinheiro(i.valor)}
+                </Texto>
               </View>
             ))}
           </Lista>
@@ -135,7 +158,11 @@ export function Cobranca({ pessoaId, rachaId }: { pessoaId: string; rachaId?: st
               </Texto>
             )}
             <View style={estilos.acoes}>
-              <Botao variante="primario" rotulo="Enviar cobrança" dica="Abre o WhatsApp ou outro app para mandar" aoTocar={() => Share.share({ message: c.mensagem })} />
+              <Botao variante="primario" rotulo="Enviar cobrança" dica="Abre o WhatsApp ou outro app para mandar" aoTocar={async () => {
+                  await Share.share({ message: c.mensagem });
+                  registrarCobranca(pessoaId);
+                }}
+              />
               <Botao rotulo="Copiar mensagem" aoTocar={() => copiar(c.mensagem, 'Mensagem')} />
               <Botao
                 variante="link"

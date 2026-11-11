@@ -2,7 +2,7 @@ import { gerarExtrato } from '../../dados/extrato';
 import { BANCOS_DEMO, novaConexao, situacaoDaConexao } from '../bancos';
 import { somarDias } from '../datas';
 import { detectarAssinaturas } from '../deteccao';
-import { JANELA_DE_AVISOS_DIAS, lembretesDoRadar } from '../lembretes';
+import { JANELA_DE_AVISOS_DIAS, lembretesDeRacha, lembretesDoRadar } from '../lembretes';
 
 const HOJE = '2026-11-07';
 
@@ -65,5 +65,32 @@ describe('lembretesDoRadar', () => {
     const spotify = assinaturas.find((a) => a.nome === 'Spotify')!;
     const aviso = lembretesDoRadar(assinaturas, { [spotify.id]: 'cancelar' }, todos, HOJE).find((l) => l.assinaturaId === spotify.id)!;
     expect(aviso.corpo).toMatch(/Ainda dá tempo/);
+  });
+});
+
+describe('lembretesDeRacha', () => {
+  it('uma semana depois da pendência; se já passou, amanhã', () => {
+    const [carla, bruno] = lembretesDeRacha(
+      [
+        { pessoaId: 'carla', nome: 'Carla', valor: 12000, desde: '2026-11-06' },
+        { pessoaId: 'bruno', nome: 'Bruno', valor: 14245, desde: '2026-10-20' },
+      ],
+      HOJE,
+    );
+    expect(carla).toMatchObject({ data: '2026-11-13', titulo: 'Carla te deve R$ 120,00' });
+    expect(carla.corpo).toMatch(/^Faz 7 dias\./);
+    expect(bruno.data).toBe('2026-11-08');
+  });
+
+  it('conta a semana a partir da última cobrança mandada; quem não deve, não recebe', () => {
+    const [l] = lembretesDeRacha(
+      [
+        { pessoaId: 'carla', nome: 'Carla', valor: 12000, desde: '2026-11-01', cobradoEm: '2026-11-06' },
+        { pessoaId: 'ana', nome: 'Ana', valor: -3000, desde: '2026-11-01' },
+      ],
+      HOJE,
+    );
+    expect(l.data).toBe('2026-11-13');
+    expect(lembretesDeRacha([{ pessoaId: 'ana', nome: 'Ana', valor: 0, desde: HOJE }], HOJE)).toEqual([]);
   });
 });
